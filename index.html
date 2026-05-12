@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocGen — MySwissLab</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ═══ TOP NAV ═══════════════════════════════════════ -->
+<nav class="nav">
+  <div class="nav-left">
+    <div class="nav-logo">MSL</div>
+    <span class="nav-title">DocGen</span>
+    <span class="nav-dot">·</span>
+    <span class="nav-sub">MySwissLab</span>
+  </div>
+  <div class="nav-right">
+    <button class="nav-btn" id="btnHistory" onclick="toggleHistory()" title="Document history">📋 History <span class="history-count" id="historyCount"></span></button>
+    <button class="nav-btn" id="btnReset" onclick="resetApp()" title="Start over">↺ New</button>
+    <span class="nav-badge">v1.2.9</span>
+  </div>
+</nav>
+
+<!-- ═══ HISTORY PANEL ═════════════════════════════════ -->
+<div class="history-overlay hidden" id="historyOverlay" onclick="toggleHistory()">
+  <div class="history-panel" onclick="event.stopPropagation()">
+    <div class="history-header">
+      <span class="history-title">Document History</span>
+      <button class="history-close" onclick="toggleHistory()">✕</button>
+    </div>
+    <div class="history-body" id="historyBody">
+      <div class="history-empty">No documents yet. Create or convert a document to see it here.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN LAYOUT ═══════════════════════════════════ -->
+<div class="app" id="app">
+
+  <!-- ── MODE SELECTOR (start screen) ─────────────── -->
+  <div class="start-screen" id="startScreen">
+    <div class="start-inner">
+      <h1 class="start-title">What would you like to create?</h1>
+      <p class="start-sub">Choose how you'd like to start building your document.</p>
+
+      <div class="mode-cards mode-cards-3">
+        <!-- Mode 1: Drag & Drop -->
+        <div class="mode-card" onclick="activateMode('dragdrop')">
+          <div class="mode-icon">📂</div>
+          <div class="mode-label">Import from Obsidian</div>
+          <div class="mode-desc">Drag & drop an .md file from your vault. The app reads client data and detects the document type automatically.</div>
+          <div class="mode-tag">Function 1 — File Import</div>
+        </div>
+        <!-- Mode 2: Guided Wizard -->
+        <div class="mode-card" onclick="activateMode('wizard')">
+          <div class="mode-icon">💬</div>
+          <div class="mode-label">Guided Creation</div>
+          <div class="mode-desc">Answer a few short questions and the app builds the document step by step. No file needed.</div>
+          <div class="mode-tag">Function 2 — Mini-program</div>
+        </div>
+        <!-- Mode 3: Converter -->
+        <div class="mode-card" onclick="activateMode('converter')">
+          <div class="mode-icon">🔄</div>
+          <div class="mode-label">File Converter</div>
+          <div class="mode-desc">Convert between formats: Markdown to PDF, HTML to PDF, PDF to Markdown, or Markdown to plain text.</div>
+          <div class="mode-tag">Function 3 — Converter</div>
+        </div>
+      </div>
+
+      <!-- Quick samples row -->
+      <div class="start-samples">
+        <span class="start-samples-label">Or try a sample:</span>
+        <button class="sample-chip" onclick="loadSample('quote')">📄 Quotation</button>
+        <button class="sample-chip" onclick="loadSample('proforma')">💳 Pro Forma</button>
+        <button class="sample-chip" onclick="loadSample('invoice')">🧾 Commercial Invoice</button>
+        <button class="sample-chip" onclick="loadSample('order_confirmation')">✅ Order Conf.</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DRAG & DROP MODE ─────────────────────────── -->
+  <div class="workspace hidden" id="dragdropMode">
+    <div class="left-panel">
+      <div class="panel-scroll">
+
+        <!-- Drop Zone -->
+        <div class="section">
+          <div class="section-label">Drop Your File</div>
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-icon" id="dropIcon">📂</div>
+            <div class="drop-title" id="dropTitle">Drag .md file here</div>
+            <div class="drop-sub" id="dropSub">or click to browse</div>
+          </div>
+          <input type="file" id="fileInput" accept=".md,.txt,.markdown" style="display:none" onchange="handleFile(event)">
+
+          <!-- Context field -->
+          <div class="context-box">
+            <label class="field-label-sm">Additional context (optional)</label>
+            <textarea class="textarea-sm" id="contextField" placeholder="e.g. 'Use formal tone, include 2 revision rounds, valid for 2 weeks'"></textarea>
+          </div>
+        </div>
+
+        <!-- Detected type + fields (hidden initially) -->
+        <div class="section hidden" id="ddFieldsSection">
+          <div class="type-row">
+            <span class="type-badge" id="ddTypeBadge">—</span>
+            <span class="ai-pill">🤖 AI-detected</span>
+          </div>
+          <div class="section-label">Editable Fields</div>
+          <div id="ddFieldsContainer"></div>
+          <button class="btn btn-primary btn-full" onclick="generatePreview()">📄 Generate Preview</button>
+        </div>
+
+      </div>
+    </div>
+    <div class="right-panel" id="ddPreviewPanel">
+      <div class="preview-bar hidden" id="ddPreviewBar">
+        <span class="preview-bar-title" id="ddPreviewTitle">Preview</span>
+        <button class="btn btn-outline btn-sm" onclick="downloadDocumentPdf()">↓ Download PDF</button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadDocument()">↓ HTML</button>
+      </div>
+      <div class="doc-card" id="ddDocCard">
+        <div class="empty-state">
+          <div class="empty-icon">📄</div>
+          <div class="empty-title">Drop a file to begin</div>
+          <div class="empty-sub">Your document preview will appear here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONVERTER MODE ────────────────────────────── -->
+  <div class="workspace hidden" id="converterMode">
+    <div class="left-panel">
+      <div class="panel-scroll">
+
+        <!-- Conversion direction selector -->
+        <div class="section">
+          <div class="section-label">Conversion Type</div>
+          <div class="conv-type-grid">
+            <div class="conv-type-option selected" onclick="selectConvType('md2pdf', this)">
+              <div class="conv-type-icon">📄</div>
+              <div class="conv-type-name">MD → PDF</div>
+            </div>
+            <div class="conv-type-option" onclick="selectConvType('pdf2md', this)">
+              <div class="conv-type-icon">📝</div>
+              <div class="conv-type-name">PDF → MD</div>
+            </div>
+            <div class="conv-type-option" onclick="selectConvType('md2txt', this)">
+              <div class="conv-type-icon">📃</div>
+              <div class="conv-type-name">MD → TXT</div>
+            </div>
+            <div class="conv-type-option" onclick="selectConvType('html2pdf', this)">
+              <div class="conv-type-icon">🌐</div>
+              <div class="conv-type-name">HTML → PDF</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- File drop zone -->
+        <div class="section">
+          <div class="section-label">Drop Your File</div>
+          <div class="drop-zone" id="convDropZone">
+            <div class="drop-icon" id="convDropIcon">📂</div>
+            <div class="drop-title" id="convDropTitle">Drag .md file here</div>
+            <div class="drop-sub" id="convDropSub">or click to browse</div>
+          </div>
+          <input type="file" id="convFileInput" accept=".md,.txt,.markdown,.pdf,.html,.htm" style="display:none" onchange="handleConvFile(event)">
+        </div>
+
+        <!-- Convert button + info -->
+        <div class="section" id="convActionSection" style="display:none;">
+          <div class="conv-file-info" id="convFileInfo"></div>
+          <button class="btn btn-primary btn-full" id="convBtn" onclick="runConversion()">🔄 Convert & Preview</button>
+        </div>
+
+      </div>
+    </div>
+    <div class="right-panel" id="convPreviewPanel">
+      <div class="preview-bar hidden" id="convPreviewBar">
+        <span class="preview-bar-title" id="convPreviewTitle">Preview</span>
+        <button class="btn btn-outline btn-sm" onclick="downloadConversion()">↓ Download</button>
+      </div>
+      <div class="doc-card" id="convDocCard">
+        <div class="empty-state">
+          <div class="empty-icon">🔄</div>
+          <div class="empty-title">Drop a file to convert</div>
+          <div class="empty-sub">Choose a conversion type on the left, then drop your file.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── WIZARD MODE ──────────────────────────────── -->
+  <div class="workspace hidden" id="wizardMode">
+    <div class="left-panel">
+      <div class="panel-scroll">
+
+        <!-- Wizard steps -->
+        <div class="section" id="wizardContainer">
+          <!-- Steps are injected dynamically -->
+        </div>
+
+      </div>
+    </div>
+    <div class="right-panel" id="wizPreviewPanel">
+      <div class="preview-bar hidden" id="wizPreviewBar">
+        <span class="preview-bar-title" id="wizPreviewTitle">Preview</span>
+        <button class="btn btn-outline btn-sm" onclick="downloadDocumentPdf()">↓ Download PDF</button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadDocument()">↓ HTML</button>
+      </div>
+      <div class="doc-card" id="wizDocCard">
+        <div class="empty-state">
+          <div class="empty-icon">💬</div>
+          <div class="empty-title">Answer the questions to build your document</div>
+          <div class="empty-sub">A live preview will appear as you provide details.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="engine.js"></script>
+<script src="quote-template-data.js"></script>
+<script src="proforma-template-data.js"></script>
+<script src="invoice-template-data.js"></script>
+<script src="orderconf-template-data.js"></script>
+<script src="templates.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

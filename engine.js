@@ -24,6 +24,89 @@ const COMPANY = {
   iban: 'CH60 8080 8002 4143 2892 7',
 };
 
+// ── Service Price Catalog ────────────────────────────
+
+const SERVICE_CATALOG = {
+  testing: [
+    { id: 'cpsr_base', name: 'Safety Assessment Report (Base Formula)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true },
+    { id: 'cpsr_var',  name: 'Safety Assessment Report (Variation)', unit: 'per product', prices: { CHF: 200, USD: 224, EUR: 208 } },
+    { id: 'stability', name: 'Stability Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true },
+    { id: 'micro',     name: 'Microbiological Testing', unit: 'per product', prices: { CHF: 175, USD: 196, EUR: 182 }, popular: true },
+    { id: 'pet',       name: 'Challenge (PET) Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 } },
+  ],
+  regulatory: [
+    { id: 'cpsr_base', name: 'Safety Assessment Report (Base Formula)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true },
+    { id: 'cpsr_var',  name: 'Safety Assessment Report (Variation)', unit: 'per product', prices: { CHF: 200, USD: 224, EUR: 208 } },
+    { id: 'stability', name: 'Stability Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true },
+    { id: 'micro',     name: 'Microbiological Testing', unit: 'per product', prices: { CHF: 175, USD: 196, EUR: 182 }, popular: true },
+    { id: 'pet',       name: 'Challenge (PET) Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 } },
+  ],
+  manufacturing: [
+    { id: 'mfg_custom', name: 'Contract Manufacturing', unit: 'per unit', prices: { CHF: 0, USD: 0, EUR: 0 }, custom: true },
+  ],
+  formulation: [
+    { id: 'formula_custom', name: 'Formula Development', unit: 'per project', prices: { CHF: 0, USD: 0, EUR: 0 }, custom: true },
+  ],
+};
+
+function getServicePrice(catalogItem, currency) {
+  if (!catalogItem || catalogItem.custom) return 0;
+  return catalogItem.prices[currency] || catalogItem.prices.CHF || 0;
+}
+
+function getCatalogForService(serviceType) {
+  return SERVICE_CATALOG[serviceType] || SERVICE_CATALOG.testing;
+}
+
+// ── Add-on Definitions ──────────────────────────────
+
+const ADDONS = {
+  timeline: {
+    id: 'timeline',
+    label: 'Testing Timeline',
+    description: 'Adds an estimated turnaround block per test to the quotation',
+    price: 0,
+    priceLabel: 'No charge',
+    // Duration map: service catalog ID → turnaround string
+    durations: {
+      'stability': '12 weeks',
+      'micro':     '48 hours',
+      'pet':       '28 days',
+      // Defaults for other services
+      'cpsr_base': '3–5 business days',
+      'cpsr_var':  '3–5 business days',
+    }
+  },
+  insurance: {
+    id: 'insurance',
+    label: 'Testing Insurance',
+    description: 'Client can retest at no charge if the product fails first time',
+    price: 50,
+    priceLabel: null, // computed per currency
+    priceByCurrency: { CHF: 50, EUR: 46, USD: 56 },
+  },
+  bundle: {
+    id: 'bundle',
+    label: 'Price per Product (Full Bundle)',
+    description: 'Auto-calculates total cost per SKU across all selected tests',
+    price: 0,
+    priceLabel: 'Auto-calculated',
+  }
+};
+
+function getAddonPrice(addonId, currency) {
+  const addon = ADDONS[addonId];
+  if (!addon) return 0;
+  if (addon.priceByCurrency) {
+    return addon.priceByCurrency[currency] || addon.priceByCurrency.CHF || 0;
+  }
+  return addon.price || 0;
+}
+
+function getTimelineDuration(serviceId) {
+  return ADDONS.timeline.durations[serviceId] || '';
+}
+
 // ── Stats Bar Presets ────────────────────────────────
 
 const STATS_PRESETS = {
@@ -87,7 +170,6 @@ const SCHEMAS = {
       { id:'currency',       label:'Currency',              type:'select',   req:false, ph:'', options:['CHF','EUR','USD'] },
       { id:'stats_preset',   label:'Stats Bar Style',        type:'select',   req:false, ph:'', options:['testing','manufacturing','full_service','general'] },
       { id:'subtitle',       label:'Tagline / Summary',    type:'text',     req:false, ph:'5 products, !EU-ready! in ~~weeks~~.', hint:'Use !text! for teal and ~~text~~ for purple. Example: 5 products, !EU-ready! in ~~weeks~~.' },
-      { id:'description',    label:'Brief Description',    type:'textarea', req:false, ph:'Safety assessment, variant CPSR & microbiological testing...' },
       { id:'services',       label:'Services (one per line — flexible format)', type:'textarea', req:true, ph:'Service name, CHF 250, QTY 3\nor: Name | Detail | Qty | Price\nor: Service name CHF 175' },
       { id:'vat_rate',       label:'VAT Rate (%)',          type:'number',   req:false, ph:'0' },
       { id:'vat_note',       label:'VAT Note',              type:'text',     req:false, ph:'export exempt' },
@@ -109,7 +191,6 @@ const SCHEMAS = {
       { id:'valid_until',    label:'Valid Until',           type:'date',     req:false, ph:'' },
       { id:'currency',       label:'Currency',              type:'select',   req:false, ph:'', options:['CHF','EUR','USD'] },
       { id:'stats_preset',   label:'Stats Bar Style',        type:'select',   req:false, ph:'', options:['testing','manufacturing','full_service','general'] },
-      { id:'description',    label:'Service Offer / Description', type:'textarea', req:false, ph:'e.g. Private Label Contract Manufacturing — Facial Cleanser 100ml, 2000 pcs' },
       { id:'services',       label:'Services (one per line — flexible format)', type:'textarea', req:true, ph:'Service name, CHF 250, QTY 3\nor: Name | Detail | Qty | Price\nor: Service name CHF 175' },
       { id:'vat_rate',       label:'VAT Rate (%)',          type:'number',   req:false, ph:'0' },
       { id:'vat_note',       label:'VAT Note',              type:'text',     req:false, ph:'export exempt' },
@@ -131,7 +212,6 @@ const SCHEMAS = {
       { id:'due_date',       label:'Payment Due Date',     type:'date',     req:true,  ph:'' },
       { id:'currency',       label:'Currency',              type:'select',   req:false, ph:'', options:['CHF','EUR','USD'] },
       { id:'stats_preset',   label:'Stats Bar Style',        type:'select',   req:false, ph:'', options:['testing','manufacturing','full_service','general'] },
-      { id:'description',    label:'Service Offer / Description', type:'textarea', req:false, ph:'e.g. Testing and compliance services for cosmetic products' },
       { id:'services',       label:'Services (one per line — flexible format)', type:'textarea', req:true, ph:'Service name, CHF 250, QTY 3\nor: Name | Detail | Qty | Price\nor: Service name CHF 175' },
       { id:'vat_rate',       label:'VAT Rate (%)',          type:'number',   req:false, ph:'0' },
       { id:'vat_note',       label:'VAT Note',              type:'text',     req:false, ph:'export exempt' },
@@ -153,7 +233,6 @@ const SCHEMAS = {
       { id:'est_delivery',   label:'Est. Delivery',        type:'text',     req:false, ph:'3–5 business days after samples received' },
       { id:'currency',       label:'Currency',              type:'select',   req:false, ph:'', options:['CHF','EUR','USD'] },
       { id:'stats_preset',   label:'Stats Bar Style',        type:'select',   req:false, ph:'', options:['testing','manufacturing','full_service','general'] },
-      { id:'description',    label:'Service Offer / Description', type:'textarea', req:false, ph:'e.g. Private label manufacturing — product details' },
       { id:'services',       label:'Services (one per line — flexible format)', type:'textarea', req:true, ph:'Service name, CHF 250, QTY 3\nor: Name | Detail | Qty | Price\nor: Service name CHF 175' },
       { id:'vat_rate',       label:'VAT Rate (%)',          type:'number',   req:false, ph:'0' },
       { id:'vat_note',       label:'VAT Note',              type:'text',     req:false, ph:'export exempt' },
@@ -325,7 +404,12 @@ function parseServices(raw) {
     // ── Strategy 1: pipe-delimited ──
     if (ln.includes('|')) {
       const parts = ln.split('|').map(p => p.trim());
-      if (parts.length >= 4) {
+      if (parts.length >= 5) {
+        // Name | Detail/Unit | Qty | Price | Description
+        const desc = parts[4] || '';
+        const detail = desc ? parts[1] + (parts[1] ? '\n' : '') + desc : parts[1];
+        return _svc(i, parts[0], detail, parts[2], parts[3]);
+      } else if (parts.length >= 4) {
         // Name | Detail | Qty | Unit
         return _svc(i, parts[0], parts[1], parts[2], parts[3]);
       } else if (parts.length === 3) {
@@ -499,11 +583,13 @@ function normalizeServicesToCanonical(raw) {
   }).join('\n');
 }
 
-function calcTotals(services, vatRate) {
+function calcTotals(services, vatRate, addonExtra) {
   const subtotal = services.reduce((s, item) => s + item.total, 0);
+  const extra = addonExtra || 0;
+  const taxable = subtotal + extra;
   const rate = parseFloat(vatRate) || 0;
-  const vatAmt = subtotal * rate / 100;
-  return { subtotal, vatAmt, total: subtotal + vatAmt };
+  const vatAmt = taxable * rate / 100;
+  return { subtotal, addonExtra: extra, vatAmt, total: taxable + vatAmt };
 }
 
 // ── YAML Frontmatter Parser (robust) ────────────────

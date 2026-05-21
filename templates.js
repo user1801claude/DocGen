@@ -63,8 +63,12 @@ function totalsBlock(totals, vatRate, vatNote, depositPct) {
   const rate = parseFloat(vatRate) || 0;
   const depPct = parseFloat(depositPct) || 0;
   const depAmt = depPct > 0 ? totals.total * depPct / 100 : 0;
+  const addonRow = totals.addonExtra > 0
+    ? `<div class="row"><span>Add-ons</span><span>${fmtMoney(totals.addonExtra)}</span></div>`
+    : '';
   return `<div class="totals">
     <div class="row"><span>Subtotal</span><span>${fmtMoney(totals.subtotal)}</span></div>
+    ${addonRow}
     <div class="row"><span>VAT (${rate}%${vatNote ? ' — ' + esc(vatNote) : ''})</span><span>${fmtMoney(totals.vatAmt)}</span></div>
     <div class="grand">Total Due: ${fmtMoney(totals.total)}</div>
     ${depPct > 0 ? `<div class="deposit">${depPct}% Deposit Required: ${fmtMoney(depAmt)}</div>` : ''}
@@ -94,6 +98,106 @@ function notesBlock(notes) {
   return `<div style="margin-top:14px;font-size:11px;color:#6e6e73;word-break:break-all;overflow-wrap:break-word"><strong>Notes:</strong> ${esc(notes)}</div>`;
 }
 
+function templateNotesBlock(notes) {
+  if (!notes) return '';
+  return `<div style="margin:14px 0; padding:10px 14px; background:var(--bg-light, #f5f5f7); border-radius:6px; border-left:3px solid var(--teal, #31AD8A); font-size:10px; color:var(--text, #1d1d1f); line-height:1.6; word-break:break-word; overflow-wrap:break-word;"><span style="font-weight:700; text-transform:uppercase; font-size:8px; letter-spacing:1px; color:var(--teal, #31AD8A); display:block; margin-bottom:4px;">Notes</span>${esc(notes)}</div>`;
+}
+
+function descriptionBlock(desc) {
+  if (!desc) return '';
+  return `<div style="font-size:10.5px;color:#6e6e6e;line-height:1.5;margin:6px 0 12px;font-style:italic">${esc(desc)}</div>`;
+}
+
+// ── Add-on Blocks for Document Rendering ────────────
+
+function addonTimelineBlock(services, v) {
+  if (!v.addon_timeline) return '';
+  // Only show durations for services that have a known duration
+  const catalog = getCatalogForService(selectedService || 'testing');
+  const rows = [];
+  services.forEach(s => {
+    // Match service name to catalog to find its ID
+    const catItem = catalog.find(c => s.name.toLowerCase().includes(c.name.toLowerCase().split(' ')[0].toLowerCase()));
+    const dur = catItem ? getTimelineDuration(catItem.id) : '';
+    if (dur) {
+      rows.push({ name: s.name, duration: dur });
+    }
+  });
+  if (!rows.length) return '';
+  const rowsHtml = rows.map(r =>
+    `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f0f0f0; font-size:10px;">
+      <span style="color:var(--text, #1d1d1f);">${esc(r.name)}</span>
+      <span style="font-weight:700; color:var(--teal, #31AD8A);">${esc(r.duration)}</span>
+    </div>`
+  ).join('');
+  return `<div style="background:#f0faf6; border:1px solid #d4ede4; border-radius:6px; padding:14px 18px; margin:12px 0;">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+      <span style="font-size:14px;">⏱</span>
+      <span style="font-size:10px; font-weight:700; color:var(--dark, #1d1d1f); text-transform:uppercase; letter-spacing:1.5px;">Estimated Turnaround</span>
+    </div>
+    ${rowsHtml}
+  </div>`;
+}
+
+function addonInsuranceBlock(v) {
+  if (!v.addon_insurance) return '';
+  const cur = (CURRENCIES[_activeCurrency] || CURRENCIES.CHF).code;
+  const price = getAddonPrice('insurance', cur);
+  return `<div style="background:#f0faf6; border:1px solid #d4ede4; border-radius:6px; padding:14px 18px; margin:12px 0; display:flex; align-items:flex-start; gap:10px;">
+    <div style="font-size:16px; flex-shrink:0; line-height:1;">🛡</div>
+    <div style="font-size:9.5px; line-height:1.5; color:var(--text, #1d1d1f);">
+      <strong style="color:var(--dark, #1d1d1f);">Testing Insurance — ${cur} ${price.toFixed(2)}</strong><br>
+      If a product fails testing, you can retest at no additional cost. Insurance fee is added to the total.
+    </div>
+  </div>`;
+}
+
+function addonBundleBlock(services, v) {
+  if (!v.addon_bundle) return '';
+  if (!services.length) return '';
+  const cur = (CURRENCIES[_activeCurrency] || CURRENCIES.CHF).code;
+  // Calculate total across all services (the "bundle price per product")
+  const totalAll = services.reduce((sum, s) => sum + s.total, 0);
+  // Count unique quantities (most common use: all qty=1 so bundle = sum of unit prices)
+  // But if mixed quantities, show "total across all tests"
+  const maxQty = Math.max(...services.map(s => s.qty));
+  const perProduct = maxQty > 0 ? (totalAll / maxQty) : totalAll;
+
+  return `<div style="background:#f5f0ff; border:1px solid #d9ccf0; border-radius:6px; padding:14px 18px; margin:12px 0;">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+      <span style="font-size:14px;">📦</span>
+      <span style="font-size:10px; font-weight:700; color:var(--dark, #1d1d1f); text-transform:uppercase; letter-spacing:1.5px;">Full Bundle — Price per Product</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:baseline;">
+      <span style="font-size:10px; color:var(--text-light, #6e6e73);">${services.length} test${services.length > 1 ? 's' : ''} included</span>
+      <span style="font-size:16px; font-weight:800; color:#5a3e8a;">${cur} ${perProduct.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>
+    </div>
+  </div>`;
+}
+
+function addonsTotalAmount(v) {
+  // Returns the total add-on charges to add to the invoice
+  let extra = 0;
+  if (v.addon_insurance) {
+    const cur = (CURRENCIES[_activeCurrency] || CURRENCIES.CHF).code;
+    extra += getAddonPrice('insurance', cur);
+  }
+  return extra;
+}
+
+function svcDetailHtml(detail) {
+  if (!detail) return '';
+  // detail may contain "unit\ndescription" — split and render separately
+  const parts = detail.split('\n');
+  const unit = parts[0] || '';
+  const desc = parts.slice(1).join(' ').trim();
+  let html = '<div style="font-size:9px; color:var(--text-light); line-height:1.45;">' + esc(unit) + '</div>';
+  if (desc) {
+    html += '<div style="font-size:9px; color:var(--text-muted); line-height:1.45; margin-top:3px; font-style:italic;">' + esc(desc) + '</div>';
+  }
+  return html;
+}
+
 // ── 1. QUOTATION (uses external template) ───────────
 
 let _lastQuoteExportHtml = null;
@@ -103,7 +207,8 @@ if (!_quoteTemplateCache) console.warn('Quote template not loaded — check quot
 
 function renderQuote(v) {
   const services = parseServices(v.services);
-  const totals = calcTotals(services, v.vat_rate);
+  const addonExtra = addonsTotalAmount(v);
+  const totals = calcTotals(services, v.vat_rate, addonExtra);
   const ref = v.order_number || '—';
   const cur = (CURRENCIES[_activeCurrency] || CURRENCIES.CHF).code;
 
@@ -114,7 +219,7 @@ function renderQuote(v) {
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; font-size:10px; color:var(--text-muted); padding-top:14px; width:28px;">${i + 1}</td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0;">
         <div style="font-size:11.5px; font-weight:700; color:var(--dark); margin-bottom:3px;">${esc(s.name)}</div>
-        ${s.detail ? '<div style="font-size:9px; color:var(--text-light); line-height:1.45; margin-bottom:6px;">' + esc(s.detail) + '</div>' : ''}
+        ${s.detail ? svcDetailHtml(s.detail) : ''}
       </td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; text-align:center; font-size:10px; padding-top:14px; width:50px;">${s.qty}</td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; text-align:right; font-size:10px; font-weight:600; padding-top:14px; width:75px;">${s.unit.toFixed(2)}</td>
@@ -138,11 +243,26 @@ function renderQuote(v) {
     html = html.replace(/\{\{DATE_ISSUED\}\}/g, fmtDate(v.date));
     html = html.replace(/\{\{DATE_VALID\}\}/g, fmtDate(v.valid_until));
     html = html.replace(/\{\{SUBTITLE\}\}/g, subtitle);
-    html = html.replace(/\{\{DESCRIPTION\}\}/g, esc(v.description || ''));
+    // Remove global description placeholder (descriptions are now per-service)
+    html = html.replace(/<div[^>]*>\{\{DESCRIPTION\}\}<\/div>/g, '');
+    html = html.replace(/\{\{DESCRIPTION\}\}/g, '');
     html = html.replace(/\{\{SERVICE_ROWS\}\}/g, svcRows);
     html = html.replace(/\{\{TOTAL_CHF\}\}/g, fmtTotal);
     html = html.replace(/\{\{VAT_CHF\}\}/g, fmtVat);
     html = html.replace(/\{\{PER_PRODUCT\}\}/g, cur + ' ' + perProduct);
+
+    // Add-ons: build dynamic content
+    const addonsHtml = addonTimelineBlock(services, v) + addonInsuranceBlock(v) + addonBundleBlock(services, v);
+    // Replace static add-ons heading with dynamic content (or empty if none selected)
+    html = html.replace(/OPTIONAL ADD-ONS<\/div>/g, 'OPTIONAL ADD-ONS</div>' + addonsHtml);
+    // Replace the static insurance box with nothing (we render dynamically above)
+    // Remove static insurance promo placeholder (replaced in template data with marker)
+    html = html.replace(/<!-- STATIC_INSURANCE_BOX -->/g, '');
+    // Replace "Optional add-ons | on request" row in totals with actual add-on total
+    const addonsLineHtml = addonExtra > 0
+      ? `<span style="color:var(--text-light);">Add-ons</span><span style="font-weight:600; color:var(--dark);">${cur} ${addonExtra.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>`
+      : `<span style="color:var(--text-light);">Optional add-ons</span><span style="color:var(--text-muted); font-style:italic;">none selected</span>`;
+    html = html.replace(/<span[^>]*>Optional add-ons<\/span><span[^>]*>on request<\/span>/g, addonsLineHtml);
 
     // Dynamic stats bar based on selected preset
     const preset = STATS_PRESETS[v.stats_preset] || STATS_PRESETS['testing'];
@@ -182,6 +302,9 @@ function renderQuote(v) {
     html = html.replace(/\{\{BANK_BIC\}\}/g, _bd.bic);
     html = html.replace(/\{\{BANK_IID\}\}/g, _bd.iid);
 
+    // Notes
+    html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
+
     _lastQuoteExportHtml = html;
 
     // For preview: render in iframe for perfect isolation
@@ -215,7 +338,6 @@ function renderQuote(v) {
   <div style="margin-bottom:20px;">
     <div class="quote-label">QUOTATION #${esc(ref)}</div>
     <div class="quote-title">${v.subtitle ? fmtSubtitle(v.subtitle) : 'Quotation #' + esc(ref)}</div>
-    ${v.description ? `<div style="font-size:11px;color:#6e6e73;line-height:1.5;margin-bottom:20px;font-style:italic">${esc(v.description)}</div>` : ''}
   </div>
 
   <!-- Date / Valid / Reference row -->
@@ -251,6 +373,9 @@ function renderQuote(v) {
   </div>
 
   ${serviceTable(services)}
+  ${addonTimelineBlock(services, v)}
+  ${addonInsuranceBlock(v)}
+  ${addonBundleBlock(services, v)}
   ${totalsBlock(totals, v.vat_rate, v.vat_note, v.deposit_pct)}
 
   ${v.stats_preset === 'testing' ? '<div class="guarantee"><strong>Our Guarantee:</strong> Turnaround time is guaranteed at 3–5 business days from receipt of samples and payment. Pricing is fixed for the duration of validity.</div>' : '<div class="guarantee">Pricing is fixed for the duration of validity.</div>'}
@@ -267,7 +392,8 @@ if (!_proformaTemplateCache) console.warn('ProForma template not loaded');
 
 function renderProForma(v) {
   const services = parseServices(v.services);
-  const totals = calcTotals(services, v.vat_rate);
+  const addonExtra = addonsTotalAmount(v);
+  const totals = calcTotals(services, v.vat_rate, addonExtra);
   const ref = v.order_number || '\u2014';
   const invRef = 'PI-' + ref.replace(/^OC-|^PI-|^CI-/g, '');
   const cur = (CURRENCIES[_activeCurrency] || CURRENCIES.CHF).code;
@@ -278,7 +404,7 @@ function renderProForma(v) {
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; font-size:10px; color:var(--text-muted); padding-top:14px; width:28px;">${i + 1}</td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0;">
         <div style="font-size:11.5px; font-weight:700; color:var(--dark); margin-bottom:3px;">${esc(s.name)}</div>
-        ${s.detail ? '<div style="font-size:9px; color:var(--text-light); line-height:1.45;">' + esc(s.detail) + '</div>' : ''}
+        ${s.detail ? svcDetailHtml(s.detail) : ''}
       </td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; text-align:center; font-size:10px; padding-top:14px; width:50px;">${s.qty}</td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; text-align:right; font-size:10px; font-weight:600; padding-top:14px; width:75px;">${s.unit.toFixed(2)}</td>
@@ -301,7 +427,19 @@ function renderProForma(v) {
     html = html.replace(/\{\{CLIENT_VAT\}\}/g, esc(v.client_vat || ''));
     html = html.replace(/\{\{DATE_ISSUED\}\}/g, fmtDate(v.date));
     html = html.replace(/\{\{DATE_VALID\}\}/g, fmtDate(v.valid_until || ''));
+    // Description: remove from title area, inject as a row below services
+    html = html.replace(/<div[^>]*>\{\{DESCRIPTION\}\}<\/div>/g, '');
+    html = html.replace(/\{\{DESCRIPTION\}\}/g, '');
     html = html.replace(/\{\{SERVICE_ROWS\}\}/g, svcRows);
+    // Add-ons injection
+    const pfAddonsHtml = addonTimelineBlock(services, v) + addonInsuranceBlock(v) + addonBundleBlock(services, v);
+    html = html.replace(/OPTIONAL ADD-ONS<\/div>/g, 'OPTIONAL ADD-ONS</div>' + pfAddonsHtml);
+    // Remove static insurance promo placeholder (replaced in template data with marker)
+    html = html.replace(/<!-- STATIC_INSURANCE_BOX -->/g, '');
+    const pfAddonsLine = addonExtra > 0
+      ? `<span style="color:var(--text-light);">Add-ons</span><span style="font-weight:600; color:var(--dark);">${cur} ${addonExtra.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>`
+      : `<span style="color:var(--text-light);">Optional add-ons</span><span style="color:var(--text-muted); font-style:italic;">none selected</span>`;
+    html = html.replace(/<span[^>]*>Optional add-ons<\/span><span[^>]*>on request<\/span>/g, pfAddonsLine);
     html = html.replace(/\{\{TOTAL_CHF\}\}/g, fmtTotal);
     html = html.replace(/\{\{VAT_CHF\}\}/g, fmtVat);
     html = html.replace(/\{\{VAT_LABEL\}\}/g, vatLabel);
@@ -323,6 +461,9 @@ function renderProForma(v) {
     html = html.replace(/\{\{BANK_IBAN\}\}/g, _bd.iban);
     html = html.replace(/\{\{BANK_BIC\}\}/g, _bd.bic);
     html = html.replace(/\{\{BANK_IID\}\}/g, _bd.iid);
+
+    // Notes
+    html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
     _lastProformaExportHtml = html;
 
@@ -348,8 +489,12 @@ function renderProForma(v) {
     <div class="meta-block"><div class="lbl">Issued By</div><div class="val">${COMPANY.name}</div><div class="sub">${issuerBlock()}</div></div>
   </div>
   ${serviceTable(services)}
+  ${addonTimelineBlock(services, v)}
+  ${addonInsuranceBlock(v)}
+  ${addonBundleBlock(services, v)}
   ${totalsBlock(totals, v.vat_rate, v.vat_note, v.deposit_pct)}
   ${bankBox(invRef, totals.total)}
+  ${notesBlock(v.notes)}
   ${footerBlock()}`;
 }
 
@@ -361,7 +506,8 @@ if (!_invoiceTemplateCache) console.warn('Invoice template not loaded');
 
 function renderInvoice(v) {
   const services = parseServices(v.services);
-  const totals = calcTotals(services, v.vat_rate);
+  const addonExtra = addonsTotalAmount(v);
+  const totals = calcTotals(services, v.vat_rate, addonExtra);
   const ref = v.order_number || '\u2014';
   const invRef = 'CI-' + ref.replace(/^OC-|^PI-|^CI-/g, '');
   const cur = (CURRENCIES[_activeCurrency] || CURRENCIES.CHF).code;
@@ -372,7 +518,7 @@ function renderInvoice(v) {
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; font-size:10px; color:var(--text-muted); padding-top:14px; width:28px;">${i + 1}</td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0;">
         <div style="font-size:11.5px; font-weight:700; color:var(--dark); margin-bottom:3px;">${esc(s.name)}</div>
-        ${s.detail ? '<div style="font-size:9px; color:var(--text-light); line-height:1.45;">' + esc(s.detail) + '</div>' : ''}
+        ${s.detail ? svcDetailHtml(s.detail) : ''}
       </td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; text-align:center; font-size:10px; padding-top:14px; width:50px;">${s.qty}</td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; text-align:right; font-size:10px; font-weight:600; padding-top:14px; width:75px;">${s.unit.toFixed(2)}</td>
@@ -393,9 +539,23 @@ function renderInvoice(v) {
     html = html.replace(/\{\{CLIENT_ADDRESS\}\}/g, esc(v.client_address || '').replace(/\n/g, '<br>'));
     html = html.replace(/\{\{CLIENT_PHONE\}\}/g, esc(v.client_phone || ''));
     html = html.replace(/\{\{CLIENT_VAT\}\}/g, esc(v.client_vat || ''));
+    // Description: remove from title area, inject as a row below services
+    html = html.replace(/<div[^>]*>\{\{DESCRIPTION\}\}<\/div>/g, '');
+    html = html.replace(/\{\{DESCRIPTION\}\}/g, '');
     html = html.replace(/\{\{DATE_ISSUED\}\}/g, fmtDate(v.date));
     html = html.replace(/\{\{DATE_DUE\}\}/g, fmtDate(v.due_date || ''));
+    html = html.replace(/<div[^>]*>\{\{DESCRIPTION\}\}<\/div>/g, '');
+    html = html.replace(/\{\{DESCRIPTION\}\}/g, '');
     html = html.replace(/\{\{SERVICE_ROWS\}\}/g, svcRows);
+    // Add-ons injection
+    const invAddonsHtml = addonTimelineBlock(services, v) + addonInsuranceBlock(v) + addonBundleBlock(services, v);
+    html = html.replace(/OPTIONAL ADD-ONS<\/div>/g, 'OPTIONAL ADD-ONS</div>' + invAddonsHtml);
+    // Remove static insurance promo placeholder (replaced in template data with marker)
+    html = html.replace(/<!-- STATIC_INSURANCE_BOX -->/g, '');
+    const invAddonsLine = addonExtra > 0
+      ? `<span style="color:var(--text-light);">Add-ons</span><span style="font-weight:600; color:var(--dark);">${cur} ${addonExtra.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>`
+      : `<span style="color:var(--text-light);">Optional add-ons</span><span style="color:var(--text-muted); font-style:italic;">none selected</span>`;
+    html = html.replace(/<span[^>]*>Optional add-ons<\/span><span[^>]*>on request<\/span>/g, invAddonsLine);
     html = html.replace(/\{\{TOTAL_CHF\}\}/g, fmtTotal);
     html = html.replace(/\{\{VAT_CHF\}\}/g, fmtVat);
     html = html.replace(/\{\{VAT_LABEL\}\}/g, vatLabel);
@@ -416,6 +576,9 @@ function renderInvoice(v) {
     html = html.replace(/\{\{BANK_IBAN\}\}/g, _bd.iban);
     html = html.replace(/\{\{BANK_BIC\}\}/g, _bd.bic);
     html = html.replace(/\{\{BANK_IID\}\}/g, _bd.iid);
+
+    // Notes
+    html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
     _lastInvoiceExportHtml = html;
 
@@ -443,6 +606,7 @@ function renderInvoice(v) {
   ${serviceTable(services)}
   ${totalsBlock(totals, v.vat_rate, v.vat_note, v.deposit_pct)}
   ${bankBox(invRef, totals.total)}
+  ${notesBlock(v.notes)}
   ${footerBlock()}`;
 }
 
@@ -454,7 +618,8 @@ if (!_orderConfTemplateCache) console.warn('OrderConf template not loaded');
 
 function renderOrderConf(v) {
   const services = parseServices(v.services);
-  const totals = calcTotals(services, v.vat_rate);
+  const addonExtra = addonsTotalAmount(v);
+  const totals = calcTotals(services, v.vat_rate, addonExtra);
   const ref = v.order_number || '\u2014';
   const cur = (CURRENCIES[_activeCurrency] || CURRENCIES.CHF).code;
 
@@ -464,7 +629,7 @@ function renderOrderConf(v) {
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; font-size:10px; color:var(--text-muted); padding-top:14px; width:28px;">${i + 1}</td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0;">
         <div style="font-size:11.5px; font-weight:700; color:var(--dark); margin-bottom:3px;">${esc(s.name)}</div>
-        ${s.detail ? '<div style="font-size:9px; color:var(--text-light); line-height:1.45;">' + esc(s.detail) + '</div>' : ''}
+        ${s.detail ? svcDetailHtml(s.detail) : ''}
       </td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; text-align:center; font-size:10px; padding-top:14px; width:50px;">${s.qty}</td>
       <td style="padding:12px 0; vertical-align:top; border-bottom:1px solid #f0f0f0; text-align:right; font-size:10px; font-weight:600; padding-top:14px; width:75px;">${s.unit.toFixed(2)}</td>
@@ -485,9 +650,23 @@ function renderOrderConf(v) {
     html = html.replace(/\{\{CLIENT_ADDRESS\}\}/g, esc(v.client_address || '').replace(/\n/g, '<br>'));
     html = html.replace(/\{\{CLIENT_PHONE\}\}/g, esc(v.client_phone || ''));
     html = html.replace(/\{\{CLIENT_VAT\}\}/g, esc(v.client_vat || ''));
+    // Description: remove from title area, inject as a row below services
+    html = html.replace(/<div[^>]*>\{\{DESCRIPTION\}\}<\/div>/g, '');
+    html = html.replace(/\{\{DESCRIPTION\}\}/g, '');
     html = html.replace(/\{\{DATE_ISSUED\}\}/g, fmtDate(v.date));
     html = html.replace(/\{\{DATE_DUE\}\}/g, fmtDate(v.due_date || v.est_delivery || ''));
+    html = html.replace(/<div[^>]*>\{\{DESCRIPTION\}\}<\/div>/g, '');
+    html = html.replace(/\{\{DESCRIPTION\}\}/g, '');
     html = html.replace(/\{\{SERVICE_ROWS\}\}/g, svcRows);
+    // Add-ons injection
+    const ocAddonsHtml = addonTimelineBlock(services, v) + addonInsuranceBlock(v) + addonBundleBlock(services, v);
+    html = html.replace(/OPTIONAL ADD-ONS<\/div>/g, 'OPTIONAL ADD-ONS</div>' + ocAddonsHtml);
+    // Remove static insurance promo placeholder (replaced in template data with marker)
+    html = html.replace(/<!-- STATIC_INSURANCE_BOX -->/g, '');
+    const ocAddonsLine = addonExtra > 0
+      ? `<span style="color:var(--text-light);">Add-ons</span><span style="font-weight:600; color:var(--dark);">${cur} ${addonExtra.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>`
+      : `<span style="color:var(--text-light);">Optional add-ons</span><span style="color:var(--text-muted); font-style:italic;">none selected</span>`;
+    html = html.replace(/<span[^>]*>Optional add-ons<\/span><span[^>]*>on request<\/span>/g, ocAddonsLine);
     html = html.replace(/\{\{TOTAL_CHF\}\}/g, fmtTotal);
     html = html.replace(/\{\{VAT_CHF\}\}/g, fmtVat);
     html = html.replace(/\{\{VAT_LABEL\}\}/g, vatLabel);
@@ -508,6 +687,9 @@ function renderOrderConf(v) {
     html = html.replace(/\{\{BANK_IBAN\}\}/g, _bd.iban);
     html = html.replace(/\{\{BANK_BIC\}\}/g, _bd.bic);
     html = html.replace(/\{\{BANK_IID\}\}/g, _bd.iid);
+
+    // Notes
+    html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
     _lastOrderConfExportHtml = html;
 
@@ -534,6 +716,7 @@ function renderOrderConf(v) {
   </div>
   ${serviceTable(services)}
   ${totalsBlock(totals, v.vat_rate, v.vat_note, v.deposit_pct)}
+  ${notesBlock(v.notes)}
   ${footerBlock()}`;
 }
 

@@ -10,6 +10,53 @@ let currentType   = null;   // 'quote' | 'proforma' | 'invoice' | 'order_confirm
 let currentValues = {};
 let wizardStep    = 0;
 let wizardAnswers = {};
+let _editingHistoryId = null; // ID of the history entry currently being edited
+
+// ── Service Selection ────────────────────────────────
+
+let selectedService = null;
+
+const SERVICE_PRESETS_MAP = {
+  'testing': 'testing',
+  'regulatory': 'testing',
+  'manufacturing': 'manufacturing',
+  'formulation': 'full_service',
+};
+
+const SERVICE_LABELS = {
+  'testing': 'Compliance & Testing',
+  'regulatory': 'Regulatory',
+  'manufacturing': 'Contract Manufacturing',
+  'formulation': 'Formula Development',
+};
+
+function selectService(service, el) {
+  selectedService = service;
+  document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  currentValues.stats_preset = SERVICE_PRESETS_MAP[service] || 'testing';
+  document.getElementById('serviceStep').classList.add('hidden');
+  document.getElementById('docTypeStep').classList.remove('hidden');
+  document.getElementById('docTypeServiceBadge').textContent = SERVICE_LABELS[service];
+}
+
+function selectDocTypeAndProceed(type) {
+  currentType = type;
+  activateMode('wizard');
+}
+
+function backToServices() {
+  document.getElementById('docTypeStep').classList.add('hidden');
+  document.getElementById('modeStep').classList.add('hidden');
+  document.getElementById('serviceStep').classList.remove('hidden');
+  selectedService = null;
+}
+
+function backToDocType() {
+  document.getElementById('modeStep').classList.add('hidden');
+  document.getElementById('docTypeStep').classList.remove('hidden');
+  currentType = null;
+}
 
 // ── Mode Activation ─────────────────────────────────
 
@@ -37,8 +84,12 @@ function resetApp() {
   currentValues = {};
   wizardStep = 0;
   wizardAnswers = {};
+  selectedService = null;
 
   document.getElementById('startScreen').classList.remove('hidden');
+  document.getElementById('serviceStep').classList.remove('hidden');
+  document.getElementById('docTypeStep').classList.add('hidden');
+  document.getElementById('modeStep').classList.add('hidden');
   document.getElementById('dragdropMode').classList.add('hidden');
   document.getElementById('wizardMode').classList.add('hidden');
   document.getElementById('converterMode').classList.add('hidden');
@@ -102,6 +153,7 @@ function handleFile(e) {
 }
 
 function processFile(file) {
+  _editingHistoryId = null;
   const reader = new FileReader();
   reader.onload = e => {
     const raw = e.target.result;
@@ -155,6 +207,9 @@ function renderEditableFields(prefix) {
   container.innerHTML = '';
 
   schema.fields.forEach(f => {
+    // Hide the services textarea in wizard mode — services are managed by dropdown rows
+    if (f.id === 'services' && currentMode === 'wizard') return;
+
     const val = currentValues[f.id] !== undefined ? currentValues[f.id] : '';
     const prefilled = val !== '';
 
@@ -190,11 +245,14 @@ function renderEditableFields(prefix) {
 
 function onFieldEdit(fieldId, value) {
   currentValues[fieldId] = value;
-  // Clear validation error when user starts typing
   const prefix = currentMode === 'dragdrop' ? 'dd' : 'wiz';
   const el = document.getElementById(prefix + '-f-' + fieldId);
   if (el) el.classList.remove('field-error');
-  // Live preview: debounce auto-update
+
+  if (fieldId === 'currency') {
+    _updateSvcPricesForCurrency(value);
+  }
+
   schedulePreviewUpdate();
 }
 
@@ -257,6 +315,7 @@ function generatePreview() {
 function collectFieldValues() {
   const prefix = currentMode === 'dragdrop' ? 'dd' : 'wiz';
   SCHEMAS[currentType].fields.forEach(f => {
+    if (f.id === 'services' && currentMode === 'wizard') return;
     const el = document.getElementById(prefix + '-f-' + f.id);
     if (el) currentValues[f.id] = el.value;
   });
@@ -269,12 +328,18 @@ function collectFieldValues() {
 function startWizard() {
   wizardStep = 0;
   wizardAnswers = {};
-  currentType = null;
 
   const container = document.getElementById('wizardContainer');
   container.innerHTML = '';
 
-  // Step 1: Choose document type
+  // If doc type already selected from home page, skip to questions
+  if (currentType) {
+    currentValues = currentValues || {};
+    selectDocType(currentType, null);
+    return;
+  }
+
+  // Fallback: Step 1: Choose document type
   const step = document.createElement('div');
   step.className = 'wiz-step active';
   step.id = 'wiz-s-0';
@@ -307,17 +372,22 @@ function startWizard() {
 }
 
 function selectDocType(type, el) {
+  _editingHistoryId = null;
   currentType = type;
+  const savedPreset = currentValues.stats_preset;
   currentValues = {};
+  if (savedPreset) currentValues.stats_preset = savedPreset;
 
-  // Visual selection
-  el.parentElement.querySelectorAll('.wiz-type-option').forEach(o => o.classList.remove('selected'));
-  el.classList.add('selected');
+  if (el) {
+    el.parentElement.querySelectorAll('.wiz-type-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
 
-  // Mark step 1 done
   const s0 = document.getElementById('wiz-s-0');
-  s0.classList.remove('active');
-  s0.classList.add('done');
+  if (s0) {
+    s0.classList.remove('active');
+    s0.classList.add('done');
+  }
 
   // Auto-fill defaults (dates + common fields)
   const tod = _today();
@@ -359,16 +429,16 @@ function buildWizardQuestions() {
     const inputType = q.type || 'text';
     let inputHTML;
     if (inputType === 'services') {
-      inputHTML = `<div class="svc-header"><span>Service Name</span><span>Qty</span><span>Unit Price</span><span></span></div>
+      const catalog = getCatalogForService(selectedService || 'testing');
+      const curSel = currentValues.currency || 'CHF';
+      inputHTML = `<div class="line-items-hint">Prices are pre-filled from the MSL price sheet — editable if needed</div>
+      <div class="svc-header"><span>Service</span><span>Unit</span><span style="text-align:center">Qty</span><span style="text-align:right">Unit price</span><span style="text-align:right">Total</span><span></span></div>
       <div id="wiz-svc-rows">
         <div class="svc-row" data-idx="0">
-          <input class="field-input svc-name" placeholder="Service name" oninput="_syncWizServices()">
-          <input class="field-input svc-qty" type="number" placeholder="Qty" value="1" min="1" oninput="_syncWizServices()">
-          <input class="field-input svc-price" type="number" placeholder="Unit price" step="0.01" oninput="_syncWizServices()">
-          <button class="svc-remove-btn" onclick="_removeWizSvcRow(this)" title="Remove">✕</button>
+          ${_buildSvcDropdown(catalog, curSel, 0)}
         </div>
       </div>
-      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="_addWizSvcRow()">+ Add Service</button>`;
+      <button class="btn btn-secondary btn-sm svc-add-btn" onclick="_addWizSvcRow()">+ Add line item</button>`;
     } else if (inputType === 'textarea') {
       inputHTML = `<textarea class="field-input" id="wiz-q-${q.id}" placeholder="${q.ph || ''}" oninput="onWizardInput('${q.id}', this.value, ${stepNum})" rows="3"></textarea>`;
     } else {
@@ -390,8 +460,29 @@ function buildWizardQuestions() {
     container.appendChild(step);
   });
 
+  // Add-ons step (between last question and review)
+  const addonsNum = questions.length + 2;
+  const addonsStep = document.createElement('div');
+  addonsStep.className = 'wiz-step';
+  addonsStep.id = 'wiz-s-' + addonsNum;
+  addonsStep.innerHTML = `
+    <div class="wiz-step-header">
+      <div class="wiz-step-num">${addonsNum}</div>
+      <div class="wiz-step-question">Optional Add-ons</div>
+    </div>
+    <div class="wiz-step-body">
+      <div class="addons-section" id="addonsContainer">
+        ${_buildAddonsUI()}
+      </div>
+      <div class="wiz-nav">
+        <button class="btn btn-primary btn-sm" onclick="advanceWizard(${addonsNum})">Next →</button>
+        <button class="btn btn-ghost btn-sm" onclick="skipWizardStep(${addonsNum})">Skip</button>
+      </div>
+    </div>`;
+  container.appendChild(addonsStep);
+
   // Final step: review + generate
-  const finalNum = questions.length + 2;
+  const finalNum = questions.length + 3;
   const final = document.createElement('div');
   final.className = 'wiz-step';
   final.id = 'wiz-s-' + finalNum;
@@ -422,46 +513,116 @@ function onWizardInput(fieldId, value, stepNum) {
   currentValues[fieldId] = value;
 }
 
-// ── Wizard: structured service rows ───────────────
+// ── Wizard: service line items with dropdown ──────
+
+function _buildSvcDropdown(catalog, currency, idx) {
+  const options = catalog.map(s => {
+    const price = getServicePrice(s, currency);
+    const star = s.popular ? ' \u2605' : '';
+    return '<option value="' + s.id + '" data-unit="' + s.unit + '" data-price="' + price + '" data-custom="' + (s.custom || false) + '">' + s.name + star + '</option>';
+  }).join('');
+
+  const firstItem = catalog[0];
+  const firstPrice = getServicePrice(firstItem, currency);
+  const cur = currency || 'CHF';
+
+  return `
+    <select class="field-input svc-select" onchange="_onSvcSelect(this)">
+      ${options}
+    </select>
+    <input class="field-input svc-unit" value="${firstItem.unit}" readonly tabindex="-1">
+    <input class="field-input svc-qty" type="number" value="1" min="1" step="1" oninput="_syncWizServices()">
+    <input class="field-input svc-price" type="number" value="${firstPrice}" step="1" oninput="_syncWizServices()">
+    <span class="svc-total">${cur} ${(firstPrice * 1).toFixed(2)}</span>
+    <button class="svc-remove-btn" onclick="_removeWizSvcRow(this)" title="Remove">\u2715</button>
+    <input class="field-input svc-desc" type="text" placeholder="Brief description (optional)" oninput="_syncWizServices()">`;
+}
+
+function _onSvcSelect(sel) {
+  const row = sel.closest('.svc-row');
+  const opt = sel.options[sel.selectedIndex];
+  const price = parseInt(opt.dataset.price) || 0;
+  const unit = opt.dataset.unit;
+  const isCustom = opt.dataset.custom === 'true';
+
+  row.querySelector('.svc-unit').value = unit;
+  const priceInput = row.querySelector('.svc-price');
+  priceInput.value = isCustom ? '' : price;
+  if (isCustom) priceInput.placeholder = 'Custom';
+
+  _syncWizServices();
+}
 
 function _addWizSvcRow() {
   const container = document.getElementById('wiz-svc-rows');
   if (!container) return;
+  const catalog = getCatalogForService(selectedService || 'testing');
+  const curSel = currentValues.currency || 'CHF';
   const idx = container.children.length;
   const row = document.createElement('div');
   row.className = 'svc-row';
   row.dataset.idx = idx;
-  row.innerHTML = `
-    <input class="field-input svc-name" placeholder="Service name" oninput="_syncWizServices()">
-    <input class="field-input svc-qty" type="number" placeholder="Qty" value="1" min="1" oninput="_syncWizServices()">
-    <input class="field-input svc-price" type="number" placeholder="Unit price" step="0.01" oninput="_syncWizServices()">
-    <button class="svc-remove-btn" onclick="_removeWizSvcRow(this)" title="Remove">✕</button>`;
+  row.innerHTML = _buildSvcDropdown(catalog, curSel, idx);
   container.appendChild(row);
-  row.querySelector('.svc-name').focus();
+  _syncWizServices();
 }
 
 function _removeWizSvcRow(btn) {
   const container = document.getElementById('wiz-svc-rows');
-  if (container.children.length <= 1) return; // keep at least one row
+  if (container.children.length <= 1) return;
   btn.closest('.svc-row').remove();
+  _syncWizServices();
+}
+
+function _updateSvcPricesForCurrency(newCurrency) {
+  const container = document.getElementById('wiz-svc-rows');
+  if (!container) return;
+  const catalog = getCatalogForService(selectedService || 'testing');
+
+  container.querySelectorAll('.svc-row').forEach(row => {
+    const sel = row.querySelector('.svc-select');
+    if (!sel) return;
+    const selectedId = sel.value;
+    const item = catalog.find(s => s.id === selectedId);
+    if (item && !item.custom) {
+      const newPrice = getServicePrice(item, newCurrency);
+      row.querySelector('.svc-price').value = newPrice;
+      Array.from(sel.options).forEach(opt => {
+        const catItem = catalog.find(s => s.id === opt.value);
+        if (catItem) opt.dataset.price = getServicePrice(catItem, newCurrency);
+      });
+    }
+  });
   _syncWizServices();
 }
 
 function _syncWizServices() {
   const container = document.getElementById('wiz-svc-rows');
   if (!container) return;
+  const cur = currentValues.currency || 'CHF';
   const lines = [];
+
   container.querySelectorAll('.svc-row').forEach(row => {
-    const name = row.querySelector('.svc-name').value.trim();
-    const qty = row.querySelector('.svc-qty').value.trim() || '1';
-    const price = row.querySelector('.svc-price').value.trim() || '0';
+    const sel = row.querySelector('.svc-select');
+    const name = sel ? sel.options[sel.selectedIndex].text.replace(/\s*\u2605$/, '') : '';
+    const unit = row.querySelector('.svc-unit') ? row.querySelector('.svc-unit').value : '';
+    const qty = parseInt(row.querySelector('.svc-qty') ? row.querySelector('.svc-qty').value : '1') || 1;
+    const price = parseFloat(row.querySelector('.svc-price').value) || 0;
+    const desc = row.querySelector('.svc-desc') ? row.querySelector('.svc-desc').value.trim() : '';
+    const totalSpan = row.querySelector('.svc-total');
+    if (totalSpan) totalSpan.textContent = cur + ' ' + (price * qty).toFixed(2);
+
     if (name) {
-      lines.push(`${name} |  | ${qty} | ${price}`);
+      let line = name + ' | ' + unit + ' | ' + qty + ' | ' + price;
+      if (desc) line += ' | ' + desc;
+      lines.push(line);
     }
   });
+
   const value = lines.join('\n');
   wizardAnswers.services = value;
   currentValues.services = value;
+  schedulePreviewUpdate();
 }
 
 function advanceWizard(fromStep) {
@@ -479,9 +640,9 @@ function advanceWizard(fromStep) {
     next.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // If this is the last question, populate the review fields
+  // If this is the add-ons step (just before review), populate the review fields
   const questions = WIZARD_QUESTIONS[currentType];
-  if (fromStep === questions.length + 1) {
+  if (fromStep === questions.length + 2) {
     populateReviewFields();
   }
 }
@@ -496,8 +657,49 @@ function populateReviewFields() {
   renderEditableFields('wiz');
 }
 
+// ── Wizard: Optional Add-ons ────────────────────────
+
+function _buildAddonsUI() {
+  const cur = currentValues.currency || 'CHF';
+  const items = ['timeline', 'insurance', 'bundle'];
+  return items.map(id => {
+    const a = ADDONS[id];
+    const checked = currentValues['addon_' + id] ? ' checked' : '';
+    let priceLabel = a.priceLabel || '';
+    if (id === 'insurance') {
+      const p = getAddonPrice('insurance', cur);
+      priceLabel = cur + ' ' + p;
+    }
+    return `<div class="addon-item${checked ? ' checked' : ''}" onclick="_toggleAddon('${id}', this)">
+      <div class="addon-check">${checked ? '✓' : ''}</div>
+      <div class="addon-info">
+        <div class="addon-name">${esc(a.label)}</div>
+        <div class="addon-desc">${esc(a.description)}</div>
+      </div>
+      <div class="addon-price">${esc(priceLabel)}</div>
+    </div>`;
+  }).join('');
+}
+
+function _toggleAddon(id, el) {
+  const key = 'addon_' + id;
+  const isNowOn = !currentValues[key];
+  currentValues[key] = isNowOn;
+
+  if (isNowOn) {
+    el.classList.add('checked');
+    el.querySelector('.addon-check').textContent = '✓';
+  } else {
+    el.classList.remove('checked');
+    el.querySelector('.addon-check').textContent = '';
+  }
+
+  schedulePreviewUpdate();
+}
+
 function generateFromWizard() {
   collectFieldValues();
+  _syncWizServices();
   validateFields(true);
   generatePreview();
 }
@@ -507,6 +709,7 @@ function generateFromWizard() {
 // ═══════════════════════════════════════════════════
 
 function loadSample(type) {
+  _editingHistoryId = null;
   const sample = SAMPLES[type];
   currentType = sample.type;
   currentValues = { ...sample.values };
@@ -555,13 +758,13 @@ function _doDownloadPdf() {
   const fullHTML = wrapForExport(html);
   const name = buildFileName();
 
-  // Desktop app: native PDF save
   if (window.desktopApp && window.desktopApp.savePdf) {
     showToast('⏳ Generating PDF...', 'info');
     window.desktopApp.savePdf(fullHTML, name + '.pdf').then(result => {
       if (result.success) {
         showToast('✅ PDF saved: ' + result.filePath.split(/[/\\]/).pop(), 'success');
         _recordDocHistory();
+        _showSuccessScreen(name);
       } else if (result.reason === 'cancelled') {
         showToast('ℹ️ Save cancelled', 'info');
       } else {
@@ -571,7 +774,6 @@ function _doDownloadPdf() {
     return;
   }
 
-  // Web fallback: open in new window for print-to-PDF
   const w = window.open('', '_blank');
   if (!w || w.closed) {
     showToast('⚠️ Popup blocked — please allow popups and try again', 'warning');
@@ -583,7 +785,58 @@ function _doDownloadPdf() {
     w.print();
     showToast('💡 In the print dialog, select "Save as PDF"', 'info');
     _recordDocHistory();
+    _showSuccessScreen(name);
   }, 500);
+}
+
+// ── Success Screen (shown after PDF download) ────────
+
+function _showSuccessScreen(fileName) {
+  const schema = SCHEMAS[currentType];
+  const ref = currentValues.order_number || '';
+  const client = currentValues.client_company || currentValues.client_name || '';
+  const serviceLabel = SERVICE_LABELS[selectedService] || '';
+
+  const container = document.getElementById('wizardContainer');
+  if (!container) return; // Only works in wizard mode
+
+  container.innerHTML = `
+    <div class="success-screen">
+      <div class="success-icon">✓</div>
+      <h2 class="success-title">${esc(schema.label)} generated</h2>
+      <p class="success-detail">
+        ${ref ? 'Ref: ' + esc(ref) : ''}${serviceLabel ? ' · ' + esc(serviceLabel) : ''}
+        ${client ? '<br>Client: ' + esc(client) : ''}
+      </p>
+      <div class="success-card">
+        <div class="success-card-header">
+          <span>${esc(schema.label)}${ref ? ' — ' + esc(ref) : ''}</span>
+          <span class="success-card-cur">${esc(currentValues.currency || 'CHF')}</span>
+        </div>
+        <div class="success-card-body">
+          <div class="success-card-file">${esc(fileName)}.pdf</div>
+        </div>
+      </div>
+      <div class="success-actions">
+        <button class="btn btn-primary" onclick="downloadDocumentPdf()">↓ Download PDF</button>
+        <button class="btn btn-secondary" onclick="_startNewDocument()">+ New document</button>
+      </div>
+      <button class="success-back" onclick="resetApp()">← Back to Services</button>
+    </div>`;
+}
+
+function _startNewDocument() {
+  // Go back to doc type selection, keeping the same service
+  currentType = null;
+  currentValues = {};
+  wizardStep = 0;
+  wizardAnswers = {};
+  document.getElementById('wizPreviewBar').classList.add('hidden');
+  document.getElementById('wizDocCard').innerHTML = emptyHTML('💬', 'Answer the questions to build your document', 'A live preview will appear as you provide details.');
+  document.getElementById('wizardMode').classList.add('hidden');
+  document.getElementById('startScreen').classList.remove('hidden');
+  document.getElementById('serviceStep').classList.add('hidden');
+  document.getElementById('docTypeStep').classList.remove('hidden');
 }
 
 function _doDownload() {
@@ -1063,27 +1316,65 @@ let _pdfJsLoaded = false;
 function _loadPdfJs() {
   return new Promise((resolve, reject) => {
     if (_pdfJsLoaded && window.pdfjsLib) { resolve(); return; }
-    // Offline detection
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      return reject(new Error('You appear to be offline. PDF conversion requires an internet connection to load the PDF reader library.'));
-    }
     // Show loading indicator
     const docCard = document.getElementById('convDocCard');
-    if (docCard) docCard.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><div class="empty-title">Loading PDF reader...</div><div class="empty-sub">Downloading library from CDN</div></div>';
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    s.onload = () => {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      _pdfJsLoaded = true;
-      resolve();
-    };
-    s.onerror = () => reject(new Error('Failed to load PDF reader. Check your internet connection and try again.'));
-    document.head.appendChild(s);
+    if (docCard) docCard.innerHTML = '<div class="empty-state"><div class="empty-icon">📡</div><div class="empty-title">Loading PDF reader...</div></div>';
+
+    // Try local bundle first (desktop app), then fall back to CDN (web use)
+    const localPath = 'lib/pdf.min.js';
+    const cdnPath = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    const localWorker = 'lib/pdf.worker.min.js';
+    const cdnWorker = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    function tryLoad(src, workerSrc, fallback) {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = () => {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+        _pdfJsLoaded = true;
+        resolve();
+      };
+      s.onerror = () => {
+        if (fallback) {
+          fallback();
+        } else {
+          reject(new Error('Failed to load PDF reader. If you are offline, make sure you ran "node setup.js" first.'));
+        }
+      };
+      document.head.appendChild(s);
+    }
+
+    // Try local first → CDN fallback
+    tryLoad(localPath, localWorker, () => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return reject(new Error('You are offline and the local PDF library was not found. Run "node setup.js" to download it.'));
+      }
+      tryLoad(cdnPath, cdnWorker, null);
+    });
   });
 }
 
 async function _pdfToMarkdown(arrayBuffer) {
+  // Desktop app: use native Node.js pdfjs-dist via IPC (no browser script loading needed)
+  if (window.desktopApp && window.desktopApp.extractPdfText) {
+    const result = await window.desktopApp.extractPdfText(arrayBuffer);
+    if (!result.success) throw new Error(result.reason || 'PDF extraction failed');
+    let md = '';
+    result.pages.forEach((pageLines, idx) => {
+      for (const line of pageLines) {
+        if (line.fontSize >= 20) md += `# ${line.text}\n\n`;
+        else if (line.fontSize >= 16) md += `## ${line.text}\n\n`;
+        else if (line.fontSize >= 14) md += `### ${line.text}\n\n`;
+        else md += line.text + '\n';
+      }
+      if (idx < result.pages.length - 1) md += '\n---\n\n';
+    });
+    md = md.replace(/([^\n])\n([^\n#\-|>*\d])/g, '$1 $2');
+    md = md.replace(/\n{3,}/g, '\n\n');
+    return md.trim();
+  }
+
+  // Web fallback: load pdf.js from CDN
   await _loadPdfJs();
   const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const totalPages = pdf.numPages;
@@ -1170,7 +1461,6 @@ async function runConversion() {
     } else if (_convType === 'html2pdf') {
       // HTML→PDF: pass through as-is, no wrapping or modification
       const pdfHtml = _convFileData;
-      const bodyContent = _extractHtmlBody(_convFileData);
       _convResult = { html: pdfHtml, ext: 'pdf', type: 'html2pdf' };
       docCard.innerHTML = `<iframe srcdoc="${pdfHtml.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" style="width:100%;min-width:820px;border:none;min-height:800px;background:#fff;" onload="this.style.height=this.contentDocument.body.scrollHeight+40+'px'"></iframe>`;
     }
@@ -1443,15 +1733,20 @@ function _updateHistoryUI() {
     const time = h.timestamp.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     const date = h.timestamp.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     const typeCls = h.type.startsWith('conv') ? 'ht-converter' : 'ht-' + h.type;
+    const editBtn = h.snapshot
+      ? `<button class="btn btn-primary btn-sm" onclick="editHistory(${h.id})">✏ Edit</button>`
+      : '';
+    const editedBadge = h.edited ? '<span class="history-item-edited">edited</span>' : '';
     return `<div class="history-item">
       <div class="history-item-top">
         <span class="history-item-type ${typeCls}">${esc(h.label)}</span>
-        <span class="history-item-time">${date} ${time}</span>
+        <span class="history-item-time">${editedBadge}${date} ${time}</span>
       </div>
       <div class="history-item-name">${esc(h.name)}</div>
       <div class="history-item-detail">${esc(h.detail)}</div>
       <div class="history-item-actions">
         <button class="btn btn-outline btn-sm" onclick="redownloadHistory(${h.id})">↓ Download</button>
+        ${editBtn}
       </div>
     </div>`;
   }).join('');
@@ -1464,17 +1759,54 @@ function redownloadHistory(id) {
   else showToast('This item cannot be re-downloaded', 'info');
 }
 
+function editHistory(id) {
+  const h = _history.find(e => e.id === id);
+  if (!h || !h.snapshot) return;
+
+  _editingHistoryId = id;
+  currentType = h.snapshot.type;
+  currentValues = { ...h.snapshot.values };
+
+  activateMode('dragdrop');
+
+  dropZone.classList.add('has-file');
+  document.getElementById('dropIcon').textContent = '✏';
+  document.getElementById('dropTitle').textContent = h.name;
+  document.getElementById('dropSub').textContent = 'Loaded from history — ' + h.detail;
+
+  renderEditableFields('dd');
+  generatePreview();
+  toggleHistory();
+  showToast('📝 Editing: ' + h.name, 'info');
+}
+
 function _recordDocHistory() {
   if (!currentType) return;
   const schema = SCHEMAS[currentType];
   const name = buildFileName();
   const client = currentValues.client_company || currentValues.client_name || 'Unknown';
+
+  if (_editingHistoryId !== null) {
+    const h = _history.find(e => e.id === _editingHistoryId);
+    _editingHistoryId = null;
+    if (h) {
+      h.name = name;
+      h.detail = 'For: ' + client;
+      h.snapshot = { type: currentType, values: { ...currentValues } };
+      h.downloadFn = () => { _doDownloadSilent(); };
+      h.edited = true;
+      _updateHistoryUI();
+      return;
+    }
+  }
+
   addToHistory({
     type: currentType,
     label: schema.label.replace(/[^\w\s]/g, '').trim(),
     name: name,
     detail: 'For: ' + client,
     downloadFn: () => { _doDownloadPdf(); },
+    snapshot: { type: currentType, values: { ...currentValues } },
   });
 }
 
@@ -1503,3 +1835,11 @@ function _recordConvHistory() {
     downloadFn: () => { downloadConversion(); },
   });
 }
+
+// ── Version Badge ────────────────────────────────────
+(function () {
+  if (window.desktopApp && window.desktopApp.version) {
+    const el = document.getElementById('appVersion');
+    if (el) el.textContent = 'v' + window.desktopApp.version;
+  }
+})();

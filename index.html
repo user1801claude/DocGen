@@ -20,7 +20,7 @@
   <div class="nav-right">
     <button class="nav-btn" id="btnHistory" onclick="toggleHistory()" title="Document history">📋 History <span class="history-count" id="historyCount"></span></button>
     <button class="nav-btn" id="btnReset" onclick="resetApp()" title="Start over">↺ New</button>
-    <span class="nav-badge">v1.2.9</span>
+    <span class="nav-badge" id="appVersion">v1.4.0</span>
   </div>
 </nav>
 
@@ -40,44 +40,93 @@
 <!-- ═══ MAIN LAYOUT ═══════════════════════════════════ -->
 <div class="app" id="app">
 
-  <!-- ── MODE SELECTOR (start screen) ─────────────── -->
+  <!-- ── SERVICE SELECTOR (start screen) ─────────────── -->
   <div class="start-screen" id="startScreen">
     <div class="start-inner">
-      <h1 class="start-title">What would you like to create?</h1>
-      <p class="start-sub">Choose how you'd like to start building your document.</p>
+      <!-- Step 1: Service Selection -->
+      <div id="serviceStep">
+        <div class="start-logo">MySwissLab <span class="start-logo-plus">+</span></div>
+        <h1 class="start-title">Services</h1>
+        <p class="start-sub">Select a service to create or manage documents</p>
 
-      <div class="mode-cards mode-cards-3">
-        <!-- Mode 1: Drag & Drop -->
-        <div class="mode-card" onclick="activateMode('dragdrop')">
-          <div class="mode-icon">📂</div>
-          <div class="mode-label">Import from Obsidian</div>
-          <div class="mode-desc">Drag & drop an .md file from your vault. The app reads client data and detects the document type automatically.</div>
-          <div class="mode-tag">Function 1 — File Import</div>
+        <div class="mode-cards">
+          <div class="mode-card svc-card" onclick="selectService('testing', this)">
+            <div class="svc-icon" style="background:#E8F4EF;color:#1a6b4a;">🔬</div>
+            <div class="mode-label">Compliance & Testing</div>
+            <div class="mode-desc">Safety assessments, stability, microbiological & challenge testing</div>
+            <div class="svc-pricing">Fixed pricing</div>
+          </div>
+          <div class="mode-card svc-card" onclick="selectService('regulatory', this)">
+            <div class="svc-icon" style="background:#E3F2FD;color:#1565c0;">📋</div>
+            <div class="mode-label">Regulatory</div>
+            <div class="mode-desc">Responsible Person, CPNP notification, PIF compilation</div>
+            <div class="svc-pricing">Fixed pricing</div>
+          </div>
+          <div class="mode-card svc-card" onclick="selectService('manufacturing', this)">
+            <div class="svc-icon" style="background:#FFF3E0;color:#e65100;">🏭</div>
+            <div class="mode-label">Contract Manufacturing</div>
+            <div class="mode-desc">Batch production, filling, labelling & delivery of finished goods</div>
+            <div class="svc-pricing" style="color:#e65100;">Custom pricing</div>
+          </div>
+          <div class="mode-card svc-card" onclick="selectService('formulation', this)">
+            <div class="svc-icon" style="background:#F3E5F5;color:#7b1fa2;">⚗️</div>
+            <div class="mode-label">Formula Development</div>
+            <div class="mode-desc">R&D, prototype creation, INCI list and stability data</div>
+            <div class="svc-pricing" style="color:#7b1fa2;">Custom pricing</div>
+          </div>
         </div>
-        <!-- Mode 2: Guided Wizard -->
-        <div class="mode-card" onclick="activateMode('wizard')">
-          <div class="mode-icon">💬</div>
-          <div class="mode-label">Guided Creation</div>
-          <div class="mode-desc">Answer a few short questions and the app builds the document step by step. No file needed.</div>
-          <div class="mode-tag">Function 2 — Mini-program</div>
-        </div>
-        <!-- Mode 3: Converter -->
-        <div class="mode-card" onclick="activateMode('converter')">
-          <div class="mode-icon">🔄</div>
-          <div class="mode-label">File Converter</div>
-          <div class="mode-desc">Convert between formats: Markdown to PDF, HTML to PDF, PDF to Markdown, or Markdown to plain text.</div>
-          <div class="mode-tag">Function 3 — Converter</div>
+
+        <div class="start-samples" style="margin-top:24px;">
+          <button class="sample-chip" onclick="activateMode('converter')" style="border-color:var(--primary);color:var(--primary);">🔄 File Converter</button>
+          <span class="start-samples-label" style="margin-left:8px;">or try a sample:</span>
+          <button class="sample-chip" onclick="loadSample('quote')">📄 Quote</button>
+          <button class="sample-chip" onclick="loadSample('proforma')">💳 Pro Forma</button>
+          <button class="sample-chip" onclick="loadSample('invoice')">🧾 Invoice</button>
+          <button class="sample-chip" onclick="loadSample('order_confirmation')">✅ Order Conf.</button>
         </div>
       </div>
 
-      <!-- Quick samples row -->
-      <div class="start-samples">
-        <span class="start-samples-label">Or try a sample:</span>
-        <button class="sample-chip" onclick="loadSample('quote')">📄 Quotation</button>
-        <button class="sample-chip" onclick="loadSample('proforma')">💳 Pro Forma</button>
-        <button class="sample-chip" onclick="loadSample('invoice')">🧾 Commercial Invoice</button>
-        <button class="sample-chip" onclick="loadSample('order_confirmation')">✅ Order Conf.</button>
+      <!-- Step 2: Document Type Selection -->
+      <div id="docTypeStep" class="hidden">
+        <button class="back-link" onclick="backToServices()">← Back to Services</button>
+        <div class="svc-badge-row"><span class="svc-badge" id="docTypeServiceBadge"></span></div>
+        <h1 class="start-title">Select document type</h1>
+        <p class="start-sub">Create a new document or view existing ones</p>
+
+        <div class="doc-type-list">
+          <div class="doc-type-row" onclick="selectDocTypeAndProceed('quote')">
+            <div class="doc-type-icon" style="background:#E8F4EF;color:#1a6b4a;">📄</div>
+            <div class="doc-type-info">
+              <div class="doc-type-name">Quotation</div>
+              <div class="doc-type-desc">Price quote before order confirmation</div>
+            </div>
+          </div>
+          <div class="doc-type-row" onclick="selectDocTypeAndProceed('proforma')">
+            <div class="doc-type-icon" style="background:#EDE7F6;color:#5a3e8a;">💳</div>
+            <div class="doc-type-info">
+              <div class="doc-type-name">Proforma Invoice</div>
+              <div class="doc-type-desc">Preliminary invoice for advance payment</div>
+            </div>
+          </div>
+          <div class="doc-type-row" onclick="selectDocTypeAndProceed('invoice')">
+            <div class="doc-type-icon" style="background:#FCE8E8;color:#8a3e3e;">🧾</div>
+            <div class="doc-type-info">
+              <div class="doc-type-name">Commercial Invoice</div>
+              <div class="doc-type-desc">Official invoice at service completion</div>
+            </div>
+          </div>
+          <div class="doc-type-row" onclick="selectDocTypeAndProceed('order_confirmation')">
+            <div class="doc-type-icon" style="background:#E3F2FD;color:#1565c0;">✅</div>
+            <div class="doc-type-info">
+              <div class="doc-type-name">Order Confirmation</div>
+              <div class="doc-type-desc">Confirmed order with next steps</div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <!-- Step 3 removed — doc type selection goes directly to the form -->
+      <div id="modeStep" class="hidden"></div>
     </div>
   </div>
 

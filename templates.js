@@ -187,13 +187,16 @@ function addonsTotalAmount(v) {
 
 function svcDetailHtml(detail) {
   if (!detail) return '';
-  // detail may contain "unit\ndescription" — split and render separately
+  // detail may contain "unit\ndescription" or "unit\ndesc with <br> line breaks"
+  // Split on first \n to separate unit from description
   const parts = detail.split('\n');
   const unit = parts[0] || '';
-  const desc = parts.slice(1).join(' ').trim();
+  const descRaw = parts.slice(1).join(' ').trim();
+  // Restore <br> tags to line breaks for display, then escape the text parts
+  const desc = descRaw.replace(/<br>/g, '\n');
   let html = '<div style="font-size:9px; color:var(--text-light); line-height:1.45;">' + esc(unit) + '</div>';
   if (desc) {
-    html += '<div style="font-size:9px; color:var(--text-muted); line-height:1.45; margin-top:3px; font-style:italic;">' + esc(desc) + '</div>';
+    html += '<div style="font-size:9px; color:var(--text-muted); line-height:1.45; margin-top:3px; font-style:italic; font-weight:300;">' + esc(desc).replace(/\n/g, '<br>') + '</div>';
   }
   return html;
 }
@@ -305,10 +308,13 @@ function renderQuote(v) {
     // Notes
     html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
+    // Inject auto-height for pages so long service lists don't get clipped
+    const exportPatch = '<style>.page{height:auto !important; min-height:var(--page-h); overflow:visible !important; display:flex !important; flex-direction:column !important;} .page-inner{height:auto !important; min-height:0 !important; flex:1 1 auto !important;} .page > div:not(.page-inner){position:relative !important; bottom:auto !important; left:0 !important; right:0 !important; flex-shrink:0 !important; margin-left:0 !important; margin-right:0 !important; box-sizing:border-box !important;}</style>';
+    html = html.replace('</head>', exportPatch + '</head>');
     _lastQuoteExportHtml = html;
 
     // For preview: render in iframe for perfect isolation
-    // Inject CSS override to remove grey background and let pages flow
+    // Inject CSS override to remove grey background, let pages flow, and auto-expand for long service lists
     const previewPatch = '<style>body{background:#fff !important;padding:0 !important;} .page{margin:0 auto 20px !important;}</style>';
     const patched = html.replace('</head>', previewPatch + '</head>');
     const escaped = patched.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
@@ -465,6 +471,8 @@ function renderProForma(v) {
     // Notes
     html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
+    const exportPatch2 = '<style>.page{height:auto !important; min-height:var(--page-h); overflow:visible !important; display:flex !important; flex-direction:column !important;} .page-inner{height:auto !important; min-height:0 !important; flex:1 1 auto !important;} .page > div:not(.page-inner){position:relative !important; bottom:auto !important; left:0 !important; right:0 !important; flex-shrink:0 !important; margin-left:0 !important; margin-right:0 !important; box-sizing:border-box !important;}</style>';
+    html = html.replace('</head>', exportPatch2 + '</head>');
     _lastProformaExportHtml = html;
 
     const previewPatch = '<style>body{background:#fff !important;padding:0 !important;} .page{margin:0 auto 20px !important;}</style>';
@@ -580,6 +588,8 @@ function renderInvoice(v) {
     // Notes
     html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
+    const exportPatch3 = '<style>.page{height:auto !important; min-height:var(--page-h); overflow:visible !important; display:flex !important; flex-direction:column !important;} .page-inner{height:auto !important; min-height:0 !important; flex:1 1 auto !important;} .page > div:not(.page-inner){position:relative !important; bottom:auto !important; left:0 !important; right:0 !important; flex-shrink:0 !important; margin-left:0 !important; margin-right:0 !important; box-sizing:border-box !important;}</style>';
+    html = html.replace('</head>', exportPatch3 + '</head>');
     _lastInvoiceExportHtml = html;
 
     const previewPatch = '<style>body{background:#fff !important;padding:0 !important;} .page{margin:0 auto 20px !important;}</style>';
@@ -691,6 +701,8 @@ function renderOrderConf(v) {
     // Notes
     html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
+    const exportPatch4 = '<style>.page{height:auto !important; min-height:var(--page-h); overflow:visible !important; display:flex !important; flex-direction:column !important;} .page-inner{height:auto !important; min-height:0 !important; flex:1 1 auto !important;} .page > div:not(.page-inner){position:relative !important; bottom:auto !important; left:0 !important; right:0 !important; flex-shrink:0 !important; margin-left:0 !important; margin-right:0 !important; box-sizing:border-box !important;}</style>';
+    html = html.replace('</head>', exportPatch4 + '</head>');
     _lastOrderConfExportHtml = html;
 
     const previewPatch = '<style>body{background:#fff !important;padding:0 !important;} .page{margin:0 auto 20px !important;}</style>';

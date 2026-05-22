@@ -428,7 +428,16 @@ function buildWizardQuestions() {
 
     const inputType = q.type || 'text';
     let inputHTML;
-    if (inputType === 'services') {
+    if (inputType === 'currency') {
+      const curSel = currentValues.currency || 'CHF';
+      inputHTML = `<div class="currency-picker" id="wiz-cur-picker">
+        ${['CHF', 'EUR', 'USD'].map(c => {
+          const cur = CURRENCIES[c];
+          const sel = c === curSel ? ' selected' : '';
+          return `<button class="currency-btn${sel}" data-cur="${c}" onclick="_selectWizCurrency('${c}', ${stepNum})">${cur.flag} ${c}</button>`;
+        }).join('')}
+      </div>`;
+    } else if (inputType === 'services') {
       const catalog = getCatalogForService(selectedService || 'testing');
       const curSel = currentValues.currency || 'CHF';
       inputHTML = `<div class="line-items-hint">Prices are pre-filled from the MSL price sheet — editable if needed</div>
@@ -513,17 +522,21 @@ function onWizardInput(fieldId, value, stepNum) {
   currentValues[fieldId] = value;
 }
 
+
+
 // ── Wizard: service line items with dropdown ──────
 
 function _buildSvcDropdown(catalog, currency, idx) {
   const options = catalog.map(s => {
     const price = getServicePrice(s, currency);
-    const star = s.popular ? ' \u2605' : '';
-    return '<option value="' + s.id + '" data-unit="' + s.unit + '" data-price="' + price + '" data-custom="' + (s.custom || false) + '">' + s.name + star + '</option>';
+    const star = s.popular ? ' ★' : '';
+    const descAttr = s.desc ? ' data-desc="' + s.desc.replace(/\n/g, '<br>').replace(/"/g, '&quot;') + '"' : '';
+    return '<option value="' + s.id + '" data-unit="' + s.unit + '" data-price="' + price + '" data-custom="' + (s.custom || false) + '"' + descAttr + '>' + s.name + star + '</option>';
   }).join('');
 
   const firstItem = catalog[0];
   const firstPrice = getServicePrice(firstItem, currency);
+  const firstDesc = (firstItem.desc || '').replace(/\n/g, '<br>');
   const cur = currency || 'CHF';
 
   return `
@@ -534,8 +547,8 @@ function _buildSvcDropdown(catalog, currency, idx) {
     <input class="field-input svc-qty" type="number" value="1" min="1" step="1" oninput="_syncWizServices()">
     <input class="field-input svc-price" type="number" value="${firstPrice}" step="1" oninput="_syncWizServices()">
     <span class="svc-total">${cur} ${(firstPrice * 1).toFixed(2)}</span>
-    <button class="svc-remove-btn" onclick="_removeWizSvcRow(this)" title="Remove">\u2715</button>
-    <input class="field-input svc-desc" type="text" placeholder="Brief description (optional)" oninput="_syncWizServices()">`;
+    <button class="svc-remove-btn" onclick="_removeWizSvcRow(this)" title="Remove">✕</button>
+    <input class="field-input svc-desc" type="hidden" value="${firstDesc.replace(/"/g, '&quot;')}">`;
 }
 
 function _onSvcSelect(sel) {
@@ -544,11 +557,16 @@ function _onSvcSelect(sel) {
   const price = parseInt(opt.dataset.price) || 0;
   const unit = opt.dataset.unit;
   const isCustom = opt.dataset.custom === 'true';
+  const desc = opt.dataset.desc || '';
 
   row.querySelector('.svc-unit').value = unit;
   const priceInput = row.querySelector('.svc-price');
   priceInput.value = isCustom ? '' : price;
   if (isCustom) priceInput.placeholder = 'Custom';
+
+  // Auto-fill description from catalog
+  const descInput = row.querySelector('.svc-desc');
+  if (descInput) descInput.value = desc;
 
   _syncWizServices();
 }
@@ -574,6 +592,21 @@ function _removeWizSvcRow(btn) {
   _syncWizServices();
 }
 
+function _selectWizCurrency(cur, stepNum) {
+  currentValues.currency = cur;
+  wizardAnswers.currency = cur;
+  // Update button states
+  const picker = document.getElementById('wiz-cur-picker');
+  if (picker) {
+    picker.querySelectorAll('.currency-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.cur === cur);
+    });
+  }
+  // Update service row prices
+  _updateSvcPricesForCurrency(cur);
+  schedulePreviewUpdate();
+}
+
 function _updateSvcPricesForCurrency(newCurrency) {
   const container = document.getElementById('wiz-svc-rows');
   if (!container) return;
@@ -587,12 +620,14 @@ function _updateSvcPricesForCurrency(newCurrency) {
     if (item && !item.custom) {
       const newPrice = getServicePrice(item, newCurrency);
       row.querySelector('.svc-price').value = newPrice;
+      // Update all option prices in the dropdown
       Array.from(sel.options).forEach(opt => {
         const catItem = catalog.find(s => s.id === opt.value);
         if (catItem) opt.dataset.price = getServicePrice(catItem, newCurrency);
       });
     }
   });
+
   _syncWizServices();
 }
 
@@ -604,7 +639,7 @@ function _syncWizServices() {
 
   container.querySelectorAll('.svc-row').forEach(row => {
     const sel = row.querySelector('.svc-select');
-    const name = sel ? sel.options[sel.selectedIndex].text.replace(/\s*\u2605$/, '') : '';
+    const name = sel ? sel.options[sel.selectedIndex].text.replace(/\s*★$/, '') : '';
     const unit = row.querySelector('.svc-unit') ? row.querySelector('.svc-unit').value : '';
     const qty = parseInt(row.querySelector('.svc-qty') ? row.querySelector('.svc-qty').value : '1') || 1;
     const price = parseFloat(row.querySelector('.svc-price').value) || 0;
@@ -1763,18 +1798,101 @@ function editHistory(id) {
   const h = _history.find(e => e.id === id);
   if (!h || !h.snapshot) return;
 
+  const savedValues = { ...h.snapshot.values };
+  const savedType = h.snapshot.type;
+  if (h.snapshot.selectedService) selectedService = h.snapshot.selectedService;
+
   _editingHistoryId = id;
-  currentType = h.snapshot.type;
-  currentValues = { ...h.snapshot.values };
+  currentType = savedType;
 
-  activateMode('dragdrop');
+  // Activate wizard mode — this builds all steps with defaults
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('dragdropMode').classList.add('hidden');
+  document.getElementById('wizardMode').classList.remove('hidden');
+  document.getElementById('converterMode').classList.add('hidden');
+  currentMode = 'wizard';
 
-  dropZone.classList.add('has-file');
-  document.getElementById('dropIcon').textContent = '✏';
-  document.getElementById('dropTitle').textContent = h.name;
-  document.getElementById('dropSub').textContent = 'Loaded from history — ' + h.detail;
+  // Build wizard (startWizard sees currentType is set, calls selectDocType which resets currentValues)
+  startWizard();
 
-  renderEditableFields('dd');
+  // Restore saved values on top of the defaults selectDocType created
+  Object.assign(currentValues, savedValues);
+  wizardAnswers = { ...savedValues };
+
+  // Pre-fill all wizard text/date inputs
+  const questions = WIZARD_QUESTIONS[savedType];
+  questions.forEach(q => {
+    if (q.type === 'services' || q.type === 'currency') return;
+    const input = document.getElementById('wiz-q-' + q.id);
+    if (input && savedValues[q.id]) input.value = savedValues[q.id];
+  });
+
+  // Pre-fill currency buttons
+  const curVal = savedValues.currency || 'CHF';
+  const picker = document.getElementById('wiz-cur-picker');
+  if (picker) {
+    picker.querySelectorAll('.currency-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.cur === curVal);
+    });
+  }
+
+  // Pre-fill service rows from saved services string
+  if (savedValues.services) {
+    const svcContainer = document.getElementById('wiz-svc-rows');
+    if (svcContainer) {
+      const lines = savedValues.services.split('\n').filter(l => l.trim());
+      const catalog = getCatalogForService(selectedService || 'testing');
+      svcContainer.innerHTML = '';
+      lines.forEach((line, idx) => {
+        const parts = line.split(' | ');
+        const name = (parts[0] || '').trim();
+        const unit = (parts[1] || '').trim();
+        const qty = parseInt(parts[2]) || 1;
+        const price = parseFloat(parts[3]) || 0;
+        const desc = (parts[4] || '').trim();
+        const row = document.createElement('div');
+        row.className = 'svc-row';
+        row.dataset.idx = idx;
+        row.innerHTML = _buildSvcDropdown(catalog, curVal, idx);
+        svcContainer.appendChild(row);
+        // Select the matching service in dropdown
+        const sel = row.querySelector('.svc-select');
+        if (sel) {
+          const matchOpt = Array.from(sel.options).find(o => o.text.replace(/\s*★$/, '') === name);
+          if (matchOpt) sel.value = matchOpt.value;
+        }
+        // Fill unit, qty, price
+        const unitInput = row.querySelector('.svc-unit');
+        if (unitInput) unitInput.value = unit;
+        const qtyInput = row.querySelector('.svc-qty');
+        if (qtyInput) qtyInput.value = qty;
+        const priceInput = row.querySelector('.svc-price');
+        if (priceInput) priceInput.value = price;
+        const descInput = row.querySelector('.svc-desc');
+        if (descInput) descInput.value = desc;
+        const totalSpan = row.querySelector('.svc-total');
+        if (totalSpan) totalSpan.textContent = curVal + ' ' + (price * qty).toFixed(2);
+      });
+    }
+  }
+
+  // Pre-fill add-on checkboxes
+  ['timeline', 'insurance', 'bundle'].forEach(addonId => {
+    if (savedValues['addon_' + addonId]) {
+      const addonEl = document.querySelector(`.addon-item[onclick*="${addonId}"]`);
+      if (addonEl && !addonEl.classList.contains('checked')) {
+        addonEl.classList.add('checked');
+        addonEl.querySelector('.addon-check').textContent = '✓';
+      }
+    }
+  });
+
+  // Open all steps so the user can see/edit everything
+  document.querySelectorAll('.wiz-step').forEach(s => {
+    s.classList.add('active');
+    s.classList.remove('done');
+  });
+
   generatePreview();
   toggleHistory();
   showToast('📝 Editing: ' + h.name, 'info');
@@ -1792,7 +1910,7 @@ function _recordDocHistory() {
     if (h) {
       h.name = name;
       h.detail = 'For: ' + client;
-      h.snapshot = { type: currentType, values: { ...currentValues } };
+      h.snapshot = { type: currentType, values: { ...currentValues }, selectedService: selectedService };
       h.downloadFn = () => { _doDownloadSilent(); };
       h.edited = true;
       _updateHistoryUI();
@@ -1806,12 +1924,13 @@ function _recordDocHistory() {
     name: name,
     detail: 'For: ' + client,
     downloadFn: () => { _doDownloadPdf(); },
-    snapshot: { type: currentType, values: { ...currentValues } },
+    snapshot: { type: currentType, values: { ...currentValues }, selectedService: selectedService },
   });
 }
 
 function _doDownloadSilent() {
   if (!currentType) return;
+  collectFieldValues();
   const html = renderTemplate(currentType, currentValues);
   const fullHTML = wrapForExport(html);
   const name = buildFileName();

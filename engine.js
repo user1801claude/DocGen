@@ -28,18 +28,28 @@ const COMPANY = {
 
 const SERVICE_CATALOG = {
   testing: [
-    { id: 'cpsr_base', name: 'Safety Assessment Report (Base Formula)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true },
-    { id: 'cpsr_var',  name: 'Safety Assessment Report (Variation)', unit: 'per product', prices: { CHF: 200, USD: 224, EUR: 208 } },
-    { id: 'stability', name: 'Stability Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true },
-    { id: 'micro',     name: 'Microbiological Testing', unit: 'per product', prices: { CHF: 175, USD: 196, EUR: 182 }, popular: true },
-    { id: 'pet',       name: 'Challenge (PET) Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 } },
+    { id: 'cpsr_base', name: 'Cosmetic Safety Assessment Report (Base Formula)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true,
+      desc: 'Product code: CPSR-EC\nThe evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market' },
+    { id: 'cpsr_var',  name: 'Cosmetic Safety Assessment Report (Variant)', unit: 'per product', prices: { CHF: 200, USD: 224, EUR: 208 },
+      desc: 'Product code: CPSR-EC\nThe evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market' },
+    { id: 'stability', name: 'Cosmetic Stability Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true,
+      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+    { id: 'micro',     name: 'Cosmetic Microbiological Testing', unit: 'per product', prices: { CHF: 175, USD: 196, EUR: 182 }, popular: true,
+      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+    { id: 'pet',       name: 'Cosmetic Challenge Testing (PET)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 },
+      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
   ],
   regulatory: [
-    { id: 'cpsr_base', name: 'Safety Assessment Report (Base Formula)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true },
-    { id: 'cpsr_var',  name: 'Safety Assessment Report (Variation)', unit: 'per product', prices: { CHF: 200, USD: 224, EUR: 208 } },
-    { id: 'stability', name: 'Stability Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true },
-    { id: 'micro',     name: 'Microbiological Testing', unit: 'per product', prices: { CHF: 175, USD: 196, EUR: 182 }, popular: true },
-    { id: 'pet',       name: 'Challenge (PET) Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 } },
+    { id: 'cpsr_base', name: 'Cosmetic Safety Assessment Report (Base Formula)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true,
+      desc: 'Product code: CPSR-EC\nThe evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market' },
+    { id: 'cpsr_var',  name: 'Cosmetic Safety Assessment Report (Variant)', unit: 'per product', prices: { CHF: 200, USD: 224, EUR: 208 },
+      desc: 'Product code: CPSR-EC\nThe evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market' },
+    { id: 'stability', name: 'Cosmetic Stability Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true,
+      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+    { id: 'micro',     name: 'Cosmetic Microbiological Testing', unit: 'per product', prices: { CHF: 175, USD: 196, EUR: 182 }, popular: true,
+      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+    { id: 'pet',       name: 'Cosmetic Challenge Testing (PET)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 },
+      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
   ],
   manufacturing: [
     { id: 'mfg_custom', name: 'Contract Manufacturing', unit: 'per unit', prices: { CHF: 0, USD: 0, EUR: 0 }, custom: true },
@@ -248,6 +258,8 @@ const SCHEMAS = {
 const _SVC_Q = 'Add your services';
 const _SVC_PH = '';
 
+const _CUR_Q = { id:'currency', q:'Which currency?', ph:'', type:'currency' };
+
 const WIZARD_QUESTIONS = {
   quote: [
     { id:'client_company', q:'What company is this quote for?', ph:'Maison Élara Beauté' },
@@ -256,6 +268,7 @@ const WIZARD_QUESTIONS = {
     { id:'client_address', q:'Their address? (optional)', ph:'42 Rue du Faubourg, 75008 Paris, France' },
     { id:'order_number',   q:'Reference / order number?', ph:'2026-0320' },
     { id:'subtitle',       q:'Short tagline for the quote? (optional)', ph:'4 products, fast-tracked to EU compliance.' },
+    _CUR_Q,
     { id:'services',       q:_SVC_Q, ph:_SVC_PH, type:'services' },
     { id:'notes',          q:'Any additional notes? (optional)', ph:'' },
   ],
@@ -264,6 +277,7 @@ const WIZARD_QUESTIONS = {
     { id:'client_name',    q:'Contact person name?', ph:'Sophie Laurent' },
     { id:'client_email',   q:'Their email?', ph:'sophie@elara-beaute.fr' },
     { id:'order_number',   q:'Order / reference number?', ph:'OC-2026-0320' },
+    _CUR_Q,
     { id:'services',       q:_SVC_Q, ph:_SVC_PH, type:'services' },
     { id:'notes',          q:'Any notes? (optional)', ph:'Urgent' },
   ],
@@ -274,6 +288,7 @@ const WIZARD_QUESTIONS = {
     { id:'client_address', q:'Their address?', ph:'42 Rue du Faubourg, 75008 Paris, France' },
     { id:'order_number',   q:'Order / reference number?', ph:'OC-2026-0320' },
     { id:'due_date',       q:'When is payment due?', ph:'', type:'date' },
+    _CUR_Q,
     { id:'services',       q:_SVC_Q, ph:_SVC_PH, type:'services' },
     { id:'notes',          q:'Any notes?', ph:'' },
   ],
@@ -283,6 +298,7 @@ const WIZARD_QUESTIONS = {
     { id:'client_email',   q:'Their email?', ph:'' },
     { id:'order_number',   q:'Order / reference number?', ph:'OC-2026-0320' },
     { id:'est_delivery',   q:'Estimated delivery time?', ph:'3–5 business days after samples received' },
+    _CUR_Q,
     { id:'services',       q:_SVC_Q, ph:_SVC_PH, type:'services' },
     { id:'notes',          q:'Any notes?', ph:'' },
   ],
@@ -405,8 +421,8 @@ function parseServices(raw) {
     if (ln.includes('|')) {
       const parts = ln.split('|').map(p => p.trim());
       if (parts.length >= 5) {
-        // Name | Detail/Unit | Qty | Price | Description
-        const desc = parts[4] || '';
+        // Name | Detail/Unit | Qty | Price | Description (may contain <br> for line breaks)
+        const desc = (parts[4] || '').replace(/<br>/g, '\n');
         const detail = desc ? parts[1] + (parts[1] ? '\n' : '') + desc : parts[1];
         return _svc(i, parts[0], detail, parts[2], parts[3]);
       } else if (parts.length >= 4) {

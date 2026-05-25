@@ -235,6 +235,7 @@ function renderQuote(v) {
       .replace(/~~(.+?)~~/g, '<span style="color:#5A3E8A;font-weight:700">$1</span>');
     const perProduct = services.length ? (totals.total / services.length).toFixed(2) : '0.00';
     const fmtTotal = cur + ' ' + totals.total.toLocaleString('de-CH', { minimumFractionDigits: 2 });
+    const fmtSubtotal = cur + ' ' + totals.subtotal.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtVat = cur + ' ' + totals.vatAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 });
 
     let html = _quoteTemplateCache;
@@ -250,6 +251,7 @@ function renderQuote(v) {
     html = html.replace(/<div[^>]*>\{\{DESCRIPTION\}\}<\/div>/g, '');
     html = html.replace(/\{\{DESCRIPTION\}\}/g, '');
     html = html.replace(/\{\{SERVICE_ROWS\}\}/g, svcRows);
+    html = html.replace(/\{\{SUBTOTAL_CHF\}\}/g, fmtSubtotal);
     html = html.replace(/\{\{TOTAL_CHF\}\}/g, fmtTotal);
     html = html.replace(/\{\{VAT_CHF\}\}/g, fmtVat);
     html = html.replace(/\{\{PER_PRODUCT\}\}/g, cur + ' ' + perProduct);
@@ -418,6 +420,7 @@ function renderProForma(v) {
     </tr>`).join('');
 
     const fmtTotal = cur + ' ' + totals.total.toLocaleString('de-CH', { minimumFractionDigits: 2 });
+    const fmtSubtotal = cur + ' ' + totals.subtotal.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtVat = cur + ' ' + totals.vatAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const perProduct = services.length ? (totals.total / services.length).toFixed(2) : '0.00';
     const vatRate = parseFloat(v.vat_rate) || 0;
@@ -446,6 +449,7 @@ function renderProForma(v) {
       ? `<span style="color:var(--text-light);">Add-ons</span><span style="font-weight:600; color:var(--dark);">${cur} ${addonExtra.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>`
       : `<span style="color:var(--text-light);">Optional add-ons</span><span style="color:var(--text-muted); font-style:italic;">none selected</span>`;
     html = html.replace(/<span[^>]*>Optional add-ons<\/span><span[^>]*>on request<\/span>/g, pfAddonsLine);
+    html = html.replace(/\{\{SUBTOTAL_CHF\}\}/g, fmtSubtotal);
     html = html.replace(/\{\{TOTAL_CHF\}\}/g, fmtTotal);
     html = html.replace(/\{\{VAT_CHF\}\}/g, fmtVat);
     html = html.replace(/\{\{VAT_LABEL\}\}/g, vatLabel);
@@ -534,6 +538,7 @@ function renderInvoice(v) {
     </tr>`).join('');
 
     const fmtTotal = cur + ' ' + totals.total.toLocaleString('de-CH', { minimumFractionDigits: 2 });
+    const fmtSubtotal = cur + ' ' + totals.subtotal.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtVat = cur + ' ' + totals.vatAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const perProduct = services.length ? (totals.total / services.length).toFixed(2) : '0.00';
     const vatRate = parseFloat(v.vat_rate) || 0;
@@ -564,6 +569,7 @@ function renderInvoice(v) {
       ? `<span style="color:var(--text-light);">Add-ons</span><span style="font-weight:600; color:var(--dark);">${cur} ${addonExtra.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>`
       : `<span style="color:var(--text-light);">Optional add-ons</span><span style="color:var(--text-muted); font-style:italic;">none selected</span>`;
     html = html.replace(/<span[^>]*>Optional add-ons<\/span><span[^>]*>on request<\/span>/g, invAddonsLine);
+    html = html.replace(/\{\{SUBTOTAL_CHF\}\}/g, fmtSubtotal);
     html = html.replace(/\{\{TOTAL_CHF\}\}/g, fmtTotal);
     html = html.replace(/\{\{VAT_CHF\}\}/g, fmtVat);
     html = html.replace(/\{\{VAT_LABEL\}\}/g, vatLabel);
@@ -647,6 +653,7 @@ function renderOrderConf(v) {
     </tr>`).join('');
 
     const fmtTotal = cur + ' ' + totals.total.toLocaleString('de-CH', { minimumFractionDigits: 2 });
+    const fmtSubtotal = cur + ' ' + totals.subtotal.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtVat = cur + ' ' + totals.vatAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const perProduct = services.length ? (totals.total / services.length).toFixed(2) : '0.00';
     const vatRate = parseFloat(v.vat_rate) || 0;
@@ -677,6 +684,7 @@ function renderOrderConf(v) {
       ? `<span style="color:var(--text-light);">Add-ons</span><span style="font-weight:600; color:var(--dark);">${cur} ${addonExtra.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>`
       : `<span style="color:var(--text-light);">Optional add-ons</span><span style="color:var(--text-muted); font-style:italic;">none selected</span>`;
     html = html.replace(/<span[^>]*>Optional add-ons<\/span><span[^>]*>on request<\/span>/g, ocAddonsLine);
+    html = html.replace(/\{\{SUBTOTAL_CHF\}\}/g, fmtSubtotal);
     html = html.replace(/\{\{TOTAL_CHF\}\}/g, fmtTotal);
     html = html.replace(/\{\{VAT_CHF\}\}/g, fmtVat);
     html = html.replace(/\{\{VAT_LABEL\}\}/g, vatLabel);

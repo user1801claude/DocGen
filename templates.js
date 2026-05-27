@@ -140,15 +140,20 @@ function addonTimelineBlock(services, v) {
 }
 
 function addonInsuranceBlock(v) {
-  if (!v.addon_insurance) return '';
   const cur = (CURRENCIES[_activeCurrency] || CURRENCIES.CHF).code;
   const price = getAddonPrice('insurance', cur);
-  return `<div style="background:#f0faf6; border:1px solid #d4ede4; border-radius:6px; padding:14px 18px; margin:12px 0; display:flex; align-items:flex-start; gap:10px;">
+  const desc = esc(v.addon_insurance_desc || ADDONS.insurance.description);
+  if (v.addon_insurance) {
+    return `<div style="background:#f0faf6; border:1px solid #d4ede4; border-radius:6px; padding:14px 18px; margin:12px 0; display:flex; align-items:flex-start; gap:10px;">
     <div style="font-size:16px; flex-shrink:0; line-height:1;">🛡</div>
     <div style="font-size:9.5px; line-height:1.5; color:var(--text, #1d1d1f);">
       <strong style="color:var(--dark, #1d1d1f);">Testing Insurance — ${cur} ${price.toFixed(2)}</strong><br>
-      If a product fails testing, you can retest at no additional cost. Insurance fee is added to the total.
+      ${desc}
     </div>
+  </div>`;
+  }
+  return `<div style="padding:8px 0; font-size:9.5px; color:var(--text-light, #6e6e6e); line-height:1.5;">
+    <span style="font-weight:600; color:var(--dark, #1d1d1f);">Testing Insurance</span> — ${cur} ${price.toFixed(2)} per product · <span style="font-style:italic;">Optional</span> — ${desc}
   </div>`;
 }
 
@@ -187,16 +192,24 @@ function addonsTotalAmount(v) {
 
 function svcDetailHtml(detail) {
   if (!detail) return '';
-  // detail may contain "unit\ndescription" or "unit\ndesc with <br> line breaks"
+  // detail may contain "unit\ndescription" or "unit\ndesc with <br> and <b>bold</b> markers"
   // Split on first \n to separate unit from description
   const parts = detail.split('\n');
   const unit = parts[0] || '';
   const descRaw = parts.slice(1).join(' ').trim();
-  // Restore <br> tags to line breaks for display, then escape the text parts
-  const desc = descRaw.replace(/<br>/g, '\n');
-  let html = '<div style="font-size:9px; color:var(--text-light); line-height:1.45;">' + esc(unit) + '</div>';
-  if (desc) {
-    html += '<div style="font-size:9px; color:var(--text-muted); line-height:1.45; margin-top:3px; font-style:italic; font-weight:300;">' + esc(desc).replace(/\n/g, '<br>') + '</div>';
+  // Split on <b>...</b> to separate catalog desc from user brief
+  const boldMatch = descRaw.match(/^(.*?)(?:<b>(.*?)<\/b>)?$/s);
+  const catalogPart = (boldMatch ? boldMatch[1] : descRaw).replace(/<br>/g, '\n').replace(/\n$/, '').trim();
+  const briefPart = (boldMatch && boldMatch[2]) ? boldMatch[2].trim() : '';
+  let html = '';
+  if (unit) {
+    html += '<div style="font-size:9px; color:var(--text-light); line-height:1.45;">' + esc(unit) + '</div>';
+  }
+  if (catalogPart) {
+    html += '<div style="font-size:9px; color:var(--text-muted); line-height:1.45; margin-top:3px; font-style:italic; font-weight:300;">' + esc(catalogPart).replace(/\n/g, '<br>') + '</div>';
+  }
+  if (briefPart) {
+    html += '<div style="font-size:9px; color:var(--dark, #1d1d1f); line-height:1.45; margin-top:3px; font-weight:600;">' + esc(briefPart) + '</div>';
   }
   return html;
 }
@@ -233,7 +246,8 @@ function renderQuote(v) {
     subtitle = esc(subtitle)
       .replace(/!(.+?)!/g, '<span style="color:var(--teal);font-weight:700">$1</span>')
       .replace(/~~(.+?)~~/g, '<span style="color:#5A3E8A;font-weight:700">$1</span>');
-    const perProduct = services.length ? (totals.total / services.length).toFixed(2) : '0.00';
+    const totalQty = services.reduce((sum, s) => sum + s.qty, 0);
+    const perProduct = totalQty > 0 ? (totals.total / totalQty).toFixed(2) : '0.00';
     const fmtTotal = cur + ' ' + totals.total.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtSubtotal = cur + ' ' + totals.subtotal.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtVat = cur + ' ' + totals.vatAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 });
@@ -312,13 +326,13 @@ function renderQuote(v) {
 
     // Inject auto-height for pages so long service lists don't get clipped
     const exportPatch = '<style>.page{height:auto !important; min-height:var(--page-h); overflow:visible !important; display:flex !important; flex-direction:column !important;} .page-inner{height:auto !important; min-height:0 !important; flex:1 1 auto !important;} .page > div:not(.page-inner){position:relative !important; bottom:auto !important; left:0 !important; right:0 !important; flex-shrink:0 !important; margin-left:0 !important; margin-right:0 !important; box-sizing:border-box !important;}</style>';
-    html = html.replace('</head>', exportPatch + '</head>');
+    html = html.replace(/<\/head>/i, exportPatch + '</head>');
     _lastQuoteExportHtml = html;
 
     // For preview: render in iframe for perfect isolation
     // Inject CSS override to remove grey background, let pages flow, and auto-expand for long service lists
     const previewPatch = '<style>body{background:#fff !important;padding:0 !important;} .page{margin:0 auto 20px !important;}</style>';
-    const patched = html.replace('</head>', previewPatch + '</head>');
+    const patched = html.replace(/<\/head>/i, previewPatch + '</head>');
     const escaped = patched.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     return `<iframe srcdoc="${escaped}" style="width:100%;min-width:820px;border:none;min-height:3400px;background:#fff;" onload="this.style.height=this.contentDocument.body.scrollHeight+40+'px'"></iframe>`;
   }
@@ -422,7 +436,8 @@ function renderProForma(v) {
     const fmtTotal = cur + ' ' + totals.total.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtSubtotal = cur + ' ' + totals.subtotal.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtVat = cur + ' ' + totals.vatAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 });
-    const perProduct = services.length ? (totals.total / services.length).toFixed(2) : '0.00';
+    const totalQty = services.reduce((sum, s) => sum + s.qty, 0);
+    const perProduct = totalQty > 0 ? (totals.total / totalQty).toFixed(2) : '0.00';
     const vatRate = parseFloat(v.vat_rate) || 0;
     const vatLabel = 'VAT (' + vatRate.toFixed(2) + '%' + (v.vat_note ? ' \u2014 ' + esc(v.vat_note) : '') + ')';
 
@@ -434,11 +449,28 @@ function renderProForma(v) {
     html = html.replace(/\{\{CLIENT_ADDRESS\}\}/g, esc(v.client_address || '').replace(/\n/g, '<br>'));
     html = html.replace(/\{\{CLIENT_PHONE\}\}/g, esc(v.client_phone || ''));
     html = html.replace(/\{\{CLIENT_VAT\}\}/g, esc(v.client_vat || ''));
+    html = html.replace(/\{\{CLIENT_COUNTRY\}\}/g, esc(v.client_country || ''));
     html = html.replace(/\{\{DATE_ISSUED\}\}/g, fmtDate(v.date));
     html = html.replace(/\{\{DATE_VALID\}\}/g, fmtDate(v.valid_until || ''));
-    // Description: remove from title area, inject as a row below services
-    html = html.replace(/<div[^>]*>\{\{DESCRIPTION\}\}<\/div>/g, '');
-    html = html.replace(/\{\{DESCRIPTION\}\}/g, '');
+    // Subtitle
+    html = html.replace(/\{\{SUBTITLE\}\}/g, esc(v.quote_subtitle || v.subtitle || ''));
+    // Currency code for disclaimer
+    html = html.replace(/\{\{CURRENCY_CODE\}\}/g, cur);
+    // Payment due text
+    const depPct = parseFloat(v.deposit_pct) || 0;
+    const depAmt = depPct > 0 ? totals.total * depPct / 100 : 0;
+    const paymentDueText = depPct > 0 ? depPct + '% upon confirmation' : 'Pre-payment required';
+    html = html.replace(/\{\{PAYMENT_DUE\}\}/g, paymentDueText);
+    // Payment schedule box
+    const balAmt = totals.total - depAmt;
+    const paymentSchedule = depPct > 0
+      ? `<div style="margin-top:12px; padding:10px 14px; background:var(--teal-light); border-radius:6px;">
+      <div style="font-size:8px; font-weight:700; color:var(--teal-dark); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Payment Schedule</div>
+      <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:3px;"><span style="color:var(--text-light);">Deposit due now (${depPct}%)</span><span style="font-weight:700; color:var(--dark);">${cur} ${depAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span></div>
+      <div style="display:flex; justify-content:space-between; font-size:10px;"><span style="color:var(--text-light);">Balance before shipment (${100 - depPct}%)</span><span style="font-weight:700; color:var(--dark);">${cur} ${balAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span></div>
+    </div>`
+      : '';
+    html = html.replace(/\{\{PAYMENT_SCHEDULE\}\}/g, paymentSchedule);
     html = html.replace(/\{\{SERVICE_ROWS\}\}/g, svcRows);
     // Add-ons injection
     const pfAddonsHtml = addonTimelineBlock(services, v) + addonInsuranceBlock(v) + addonBundleBlock(services, v);
@@ -455,17 +487,6 @@ function renderProForma(v) {
     html = html.replace(/\{\{VAT_LABEL\}\}/g, vatLabel);
     html = html.replace(/\{\{PER_PRODUCT\}\}/g, cur + ' ' + perProduct);
 
-    // Deposit row
-    const depPct = parseFloat(v.deposit_pct) || 0;
-    const depAmt = depPct > 0 ? totals.total * depPct / 100 : 0;
-    const depositRow = depPct > 0
-      ? `<div style="display:flex; justify-content:space-between; padding-top:8px; margin-top:4px; border-top:1px dashed var(--teal, #31AD8A);">
-          <span style="font-family:var(--font-display, inherit); font-size:12px; font-weight:800; color:#5a3e8a;">${depPct}% Deposit</span>
-          <span style="font-family:var(--font-display, inherit); font-size:12px; font-weight:800; color:#5a3e8a;">${cur} ${depAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 })}</span>
-        </div>`
-      : '';
-    html = html.replace(/\{\{DEPOSIT_ROW\}\}/g, depositRow);
-
     // Bank details based on selected currency
     const _bd = (COMPANY.bankDetails && COMPANY.bankDetails[cur]) || COMPANY.bankDetails.CHF;
     html = html.replace(/\{\{BANK_IBAN\}\}/g, _bd.iban);
@@ -476,11 +497,11 @@ function renderProForma(v) {
     html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
     const exportPatch2 = '<style>.page{height:auto !important; min-height:var(--page-h); overflow:visible !important; display:flex !important; flex-direction:column !important;} .page-inner{height:auto !important; min-height:0 !important; flex:1 1 auto !important;} .page > div:not(.page-inner){position:relative !important; bottom:auto !important; left:0 !important; right:0 !important; flex-shrink:0 !important; margin-left:0 !important; margin-right:0 !important; box-sizing:border-box !important;}</style>';
-    html = html.replace('</head>', exportPatch2 + '</head>');
+    html = html.replace(/<\/head>/i, exportPatch2 + '</head>');
     _lastProformaExportHtml = html;
 
     const previewPatch = '<style>body{background:#fff !important;padding:0 !important;} .page{margin:0 auto 20px !important;}</style>';
-    const patched = html.replace('</head>', previewPatch + '</head>');
+    const patched = html.replace(/<\/head>/i, previewPatch + '</head>');
     const escaped = patched.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     return `<iframe srcdoc="${escaped}" style="width:100%;min-width:820px;border:none;min-height:2400px;background:#fff;" onload="this.style.height=this.contentDocument.body.scrollHeight+40+'px'"></iframe>`;
   }
@@ -540,7 +561,8 @@ function renderInvoice(v) {
     const fmtTotal = cur + ' ' + totals.total.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtSubtotal = cur + ' ' + totals.subtotal.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtVat = cur + ' ' + totals.vatAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 });
-    const perProduct = services.length ? (totals.total / services.length).toFixed(2) : '0.00';
+    const totalQty = services.reduce((sum, s) => sum + s.qty, 0);
+    const perProduct = totalQty > 0 ? (totals.total / totalQty).toFixed(2) : '0.00';
     const vatRate = parseFloat(v.vat_rate) || 0;
     const vatLabel = 'VAT (' + vatRate.toFixed(2) + '%' + (v.vat_note ? ' \u2014 ' + esc(v.vat_note) : '') + ')';
 
@@ -595,11 +617,11 @@ function renderInvoice(v) {
     html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
     const exportPatch3 = '<style>.page{height:auto !important; min-height:var(--page-h); overflow:visible !important; display:flex !important; flex-direction:column !important;} .page-inner{height:auto !important; min-height:0 !important; flex:1 1 auto !important;} .page > div:not(.page-inner){position:relative !important; bottom:auto !important; left:0 !important; right:0 !important; flex-shrink:0 !important; margin-left:0 !important; margin-right:0 !important; box-sizing:border-box !important;}</style>';
-    html = html.replace('</head>', exportPatch3 + '</head>');
+    html = html.replace(/<\/head>/i, exportPatch3 + '</head>');
     _lastInvoiceExportHtml = html;
 
     const previewPatch = '<style>body{background:#fff !important;padding:0 !important;} .page{margin:0 auto 20px !important;}</style>';
-    const patched = html.replace('</head>', previewPatch + '</head>');
+    const patched = html.replace(/<\/head>/i, previewPatch + '</head>');
     const escaped = patched.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     return `<iframe srcdoc="${escaped}" style="width:100%;min-width:820px;border:none;min-height:2400px;background:#fff;" onload="this.style.height=this.contentDocument.body.scrollHeight+40+'px'"></iframe>`;
   }
@@ -620,6 +642,7 @@ function renderInvoice(v) {
     <div class="meta-block"><div class="lbl">Issued By</div><div class="val">${COMPANY.name}</div><div class="sub">${issuerBlock()}</div></div>
   </div>
   ${serviceTable(services)}
+  ${addonTimelineBlock(services, v)}${addonInsuranceBlock(v)}${addonBundleBlock(services, v)}
   ${totalsBlock(totals, v.vat_rate, v.vat_note, v.deposit_pct)}
   ${bankBox(invRef, totals.total)}
   ${notesBlock(v.notes)}
@@ -655,7 +678,8 @@ function renderOrderConf(v) {
     const fmtTotal = cur + ' ' + totals.total.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtSubtotal = cur + ' ' + totals.subtotal.toLocaleString('de-CH', { minimumFractionDigits: 2 });
     const fmtVat = cur + ' ' + totals.vatAmt.toLocaleString('de-CH', { minimumFractionDigits: 2 });
-    const perProduct = services.length ? (totals.total / services.length).toFixed(2) : '0.00';
+    const totalQty = services.reduce((sum, s) => sum + s.qty, 0);
+    const perProduct = totalQty > 0 ? (totals.total / totalQty).toFixed(2) : '0.00';
     const vatRate = parseFloat(v.vat_rate) || 0;
     const vatLabel = 'VAT (' + vatRate.toFixed(2) + '%' + (v.vat_note ? ' \u2014 ' + esc(v.vat_note) : '') + ')';
 
@@ -710,11 +734,11 @@ function renderOrderConf(v) {
     html = html.replace(/\{\{NOTES\}\}/g, templateNotesBlock(v.notes));
 
     const exportPatch4 = '<style>.page{height:auto !important; min-height:var(--page-h); overflow:visible !important; display:flex !important; flex-direction:column !important;} .page-inner{height:auto !important; min-height:0 !important; flex:1 1 auto !important;} .page > div:not(.page-inner){position:relative !important; bottom:auto !important; left:0 !important; right:0 !important; flex-shrink:0 !important; margin-left:0 !important; margin-right:0 !important; box-sizing:border-box !important;}</style>';
-    html = html.replace('</head>', exportPatch4 + '</head>');
+    html = html.replace(/<\/head>/i, exportPatch4 + '</head>');
     _lastOrderConfExportHtml = html;
 
     const previewPatch = '<style>body{background:#fff !important;padding:0 !important;} .page{margin:0 auto 20px !important;}</style>';
-    const patched = html.replace('</head>', previewPatch + '</head>');
+    const patched = html.replace(/<\/head>/i, previewPatch + '</head>');
     const escaped = patched.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     return `<iframe srcdoc="${escaped}" style="width:100%;min-width:820px;border:none;min-height:2400px;background:#fff;" onload="this.style.height=this.contentDocument.body.scrollHeight+40+'px'"></iframe>`;
   }
@@ -735,6 +759,7 @@ function renderOrderConf(v) {
     <div class="meta-block"><div class="lbl">Issued By</div><div class="val">${COMPANY.name}</div><div class="sub">${issuerBlock()}</div></div>
   </div>
   ${serviceTable(services)}
+  ${addonTimelineBlock(services, v)}${addonInsuranceBlock(v)}${addonBundleBlock(services, v)}
   ${totalsBlock(totals, v.vat_rate, v.vat_note, v.deposit_pct)}
   ${notesBlock(v.notes)}
   ${footerBlock()}`;

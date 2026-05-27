@@ -35,6 +35,13 @@ function selectService(service, el) {
   document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
   if (el) el.classList.add('selected');
   currentValues.stats_preset = SERVICE_PRESETS_MAP[service] || 'testing';
+  // Clear add-on state for non-testing services to prevent cost leakage
+  if (service === 'manufacturing' || service === 'formulation') {
+    delete currentValues.addon_timeline;
+    delete currentValues.addon_insurance;
+    delete currentValues.addon_bundle;
+    delete currentValues.addon_insurance_desc;
+  }
   document.getElementById('serviceStep').classList.add('hidden');
   document.getElementById('docTypeStep').classList.remove('hidden');
   document.getElementById('docTypeServiceBadge').textContent = SERVICE_LABELS[service];
@@ -393,7 +400,7 @@ function selectDocType(type, el) {
   const tod = _today();
   // Shared defaults across all types
   currentValues.currency = 'CHF';
-  currentValues.stats_preset = 'testing';
+  currentValues.stats_preset = SERVICE_PRESETS_MAP[selectedService] || 'testing';
   currentValues.vat_rate = '0';
   currentValues.vat_note = 'Export exempt';
 
@@ -538,35 +545,80 @@ function _buildSvcDropdown(catalog, currency, idx) {
   const firstPrice = getServicePrice(firstItem, currency);
   const firstDesc = (firstItem.desc || '').replace(/\n/g, '<br>');
   const cur = currency || 'CHF';
+  const isCustom = firstItem.custom || false;
 
   return `
     <select class="field-input svc-select" onchange="_onSvcSelect(this)">
       ${options}
     </select>
-    <input class="field-input svc-unit" value="${firstItem.unit}" readonly tabindex="-1">
+    <input class="field-input svc-unit" value="${isCustom ? '' : firstItem.unit}" ${isCustom ? 'placeholder="e.g. per unit" oninput="_syncWizServices()"' : 'readonly tabindex="-1"'}>
     <input class="field-input svc-qty" type="number" value="1" min="1" step="1" oninput="_syncWizServices()">
-    <input class="field-input svc-price" type="number" value="${firstPrice}" step="1" oninput="_syncWizServices()">
+    <input class="field-input svc-price" type="number" value="${firstPrice || ''}" step="1" oninput="_syncWizServices()"${isCustom ? ' placeholder="Custom"' : ''}>
     <span class="svc-total">${cur} ${(firstPrice * 1).toFixed(2)}</span>
     <button class="svc-remove-btn" onclick="_removeWizSvcRow(this)" title="Remove">✕</button>
-    <input class="field-input svc-desc" type="hidden" value="${firstDesc.replace(/"/g, '&quot;')}">`;
+    <input class="svc-desc" type="hidden" value="${firstDesc.replace(/"/g, '&quot;')}">
+    ${firstDesc ? '<div class="svc-desc-readonly">' + firstDesc + '</div>' : ''}
+    <input class="field-input svc-brief svc-desc-visible" type="text" value="" placeholder="Add a brief description..." oninput="_syncWizServices()">`;
 }
 
 function _onSvcSelect(sel) {
   const row = sel.closest('.svc-row');
   const opt = sel.options[sel.selectedIndex];
-  const price = parseInt(opt.dataset.price) || 0;
+  const price = parseFloat(opt.dataset.price) || 0;
   const unit = opt.dataset.unit;
   const isCustom = opt.dataset.custom === 'true';
   const desc = opt.dataset.desc || '';
 
-  row.querySelector('.svc-unit').value = unit;
+  const unitInput = row.querySelector('.svc-unit');
   const priceInput = row.querySelector('.svc-price');
-  priceInput.value = isCustom ? '' : price;
-  if (isCustom) priceInput.placeholder = 'Custom';
-
-  // Auto-fill description from catalog
   const descInput = row.querySelector('.svc-desc');
-  if (descInput) descInput.value = desc;
+
+  // Toggle unit field: editable for custom items, readonly for catalog items
+  if (isCustom) {
+    unitInput.value = '';
+    unitInput.removeAttribute('readonly');
+    unitInput.setAttribute('placeholder', 'e.g. per unit');
+    unitInput.removeAttribute('tabindex');
+    unitInput.setAttribute('oninput', '_syncWizServices()');
+    priceInput.value = '';
+    priceInput.placeholder = 'Custom';
+  } else {
+    unitInput.value = unit;
+    unitInput.setAttribute('readonly', '');
+    unitInput.removeAttribute('placeholder');
+    unitInput.setAttribute('tabindex', '-1');
+    unitInput.removeAttribute('oninput');
+    priceInput.value = price;
+    priceInput.placeholder = '';
+  }
+
+  // Update hidden catalog description and readonly display
+  if (descInput) {
+    descInput.value = desc;
+  }
+  const descReadonly = row.querySelector('.svc-desc-readonly');
+  if (descReadonly) {
+    if (desc) {
+      descReadonly.innerHTML = desc;
+      descReadonly.style.display = '';
+    } else {
+      descReadonly.innerHTML = '';
+      descReadonly.style.display = 'none';
+    }
+  } else if (desc) {
+    // Create readonly div if it doesn't exist yet
+    const div = document.createElement('div');
+    div.className = 'svc-desc-readonly';
+    div.innerHTML = desc;
+    const briefInput = row.querySelector('.svc-brief');
+    if (briefInput) row.insertBefore(div, briefInput);
+  }
+  // Clear the user's brief description when switching services
+  const briefInput = row.querySelector('.svc-brief');
+  if (briefInput) {
+    briefInput.value = '';
+    briefInput.setAttribute('placeholder', isCustom ? 'Enter item description...' : 'Add a brief description...');
+  }
 
   _syncWizServices();
 }
@@ -604,6 +656,9 @@ function _selectWizCurrency(cur, stepNum) {
   }
   // Update service row prices
   _updateSvcPricesForCurrency(cur);
+  // Rebuild add-ons UI to reflect new currency prices
+  const addonsContainer = document.getElementById('addonsContainer');
+  if (addonsContainer) addonsContainer.innerHTML = _buildAddonsUI();
   schedulePreviewUpdate();
 }
 
@@ -643,13 +698,17 @@ function _syncWizServices() {
     const unit = row.querySelector('.svc-unit') ? row.querySelector('.svc-unit').value : '';
     const qty = parseInt(row.querySelector('.svc-qty') ? row.querySelector('.svc-qty').value : '1') || 1;
     const price = parseFloat(row.querySelector('.svc-price').value) || 0;
-    const desc = row.querySelector('.svc-desc') ? row.querySelector('.svc-desc').value.trim() : '';
+    const catalogDesc = row.querySelector('.svc-desc') ? row.querySelector('.svc-desc').value.trim() : '';
+    const briefDesc = row.querySelector('.svc-brief') ? row.querySelector('.svc-brief').value.trim() : '';
     const totalSpan = row.querySelector('.svc-total');
     if (totalSpan) totalSpan.textContent = cur + ' ' + (price * qty).toFixed(2);
 
     if (name) {
       let line = name + ' | ' + unit + ' | ' + qty + ' | ' + price;
-      if (desc) line += ' | ' + desc;
+      // Combine catalog description + user brief (brief wrapped in <b> for bold rendering)
+      let fullDesc = catalogDesc;
+      if (briefDesc) fullDesc += (fullDesc ? '<br>' : '') + '<b>' + briefDesc + '</b>';
+      if (fullDesc) line += ' | ' + fullDesc;
       lines.push(line);
     }
   });
@@ -696,6 +755,11 @@ function populateReviewFields() {
 
 function _buildAddonsUI() {
   const cur = currentValues.currency || 'CHF';
+  const svc = selectedService || 'testing';
+  // Add-ons only apply to testing/regulatory services
+  if (svc === 'manufacturing' || svc === 'formulation') {
+    return '<div style="font-size:12px; color:var(--muted); font-style:italic; padding:8px 0;">No optional add-ons for this service type.</div>';
+  }
   const items = ['timeline', 'insurance', 'bundle'];
   return items.map(id => {
     const a = ADDONS[id];
@@ -705,11 +769,15 @@ function _buildAddonsUI() {
       const p = getAddonPrice('insurance', cur);
       priceLabel = cur + ' ' + p;
     }
+    const descEditable = id === 'insurance';
+    const customDesc = currentValues['addon_insurance_desc'] || a.description;
     return `<div class="addon-item${checked ? ' checked' : ''}" onclick="_toggleAddon('${id}', this)">
       <div class="addon-check">${checked ? '✓' : ''}</div>
       <div class="addon-info">
         <div class="addon-name">${esc(a.label)}</div>
-        <div class="addon-desc">${esc(a.description)}</div>
+        ${descEditable
+          ? `<input type="text" class="addon-desc-input" value="${esc(customDesc)}" onclick="event.stopPropagation()" oninput="_updateInsuranceDesc(this.value)" placeholder="Description..." style="width:100%; font-size:11px; color:var(--text-light); border:1px solid #e0e0e0; border-radius:4px; padding:4px 8px; margin-top:4px; font-family:inherit; background:#fafafa;">`
+          : `<div class="addon-desc">${esc(a.description)}</div>`}
       </div>
       <div class="addon-price">${esc(priceLabel)}</div>
     </div>`;
@@ -732,10 +800,16 @@ function _toggleAddon(id, el) {
   schedulePreviewUpdate();
 }
 
+function _updateInsuranceDesc(val) {
+  currentValues.addon_insurance_desc = val;
+  schedulePreviewUpdate();
+}
+
 function generateFromWizard() {
   collectFieldValues();
   _syncWizServices();
-  validateFields(true);
+  const v = validateFields(true);
+  if (!v.ok) return;
   generatePreview();
 }
 
@@ -755,7 +829,7 @@ function loadSample(type) {
   // Update drop zone
   dropZone.classList.add('has-file');
   document.getElementById('dropIcon').textContent = '📄';
-  document.getElementById('dropTitle').textContent = 'Sample — ' + SCHEMAS[type].label;
+  document.getElementById('dropTitle').textContent = 'Sample — ' + SCHEMAS[sample.type].label;
   document.getElementById('dropSub').textContent = 'Loaded from built-in demo data';
 
   renderEditableFields('dd');
@@ -770,10 +844,7 @@ function downloadDocument() {
   if (!currentType) return;
   collectFieldValues();
   const v = validateFields(true);
-  if (!v.ok) {
-    setTimeout(() => _doDownload(), 800);
-    return;
-  }
+  if (!v.ok) return;
   _doDownload();
 }
 
@@ -781,10 +852,7 @@ function downloadDocumentPdf() {
   if (!currentType) return;
   collectFieldValues();
   const v = validateFields(true);
-  if (!v.ok) {
-    setTimeout(() => _doDownloadPdf(), 800);
-    return;
-  }
+  if (!v.ok) return;
   _doDownloadPdf();
 }
 
@@ -862,6 +930,7 @@ function _showSuccessScreen(fileName) {
 
 function _startNewDocument() {
   // Go back to doc type selection, keeping the same service
+  _editingHistoryId = null;
   currentType = null;
   currentValues = {};
   wizardStep = 0;
@@ -1855,21 +1924,27 @@ function editHistory(id) {
         row.dataset.idx = idx;
         row.innerHTML = _buildSvcDropdown(catalog, curVal, idx);
         svcContainer.appendChild(row);
-        // Select the matching service in dropdown
+        // Select the matching service in dropdown and trigger UI update
         const sel = row.querySelector('.svc-select');
         if (sel) {
           const matchOpt = Array.from(sel.options).find(o => o.text.replace(/\s*★$/, '') === name);
-          if (matchOpt) sel.value = matchOpt.value;
+          if (matchOpt) {
+            sel.value = matchOpt.value;
+            // Trigger _onSvcSelect to set up custom item UI (editable unit/desc)
+            _onSvcSelect(sel);
+          }
         }
-        // Fill unit, qty, price
+        // Fill unit, qty, price (after _onSvcSelect so we override its defaults)
         const unitInput = row.querySelector('.svc-unit');
         if (unitInput) unitInput.value = unit;
         const qtyInput = row.querySelector('.svc-qty');
         if (qtyInput) qtyInput.value = qty;
         const priceInput = row.querySelector('.svc-price');
         if (priceInput) priceInput.value = price;
-        const descInput = row.querySelector('.svc-desc');
-        if (descInput) descInput.value = desc;
+        // Restore brief description (extract from <b>...</b> marker)
+        const boldMatch = desc.match(/<b>(.*?)<\/b>/);
+        const briefInput = row.querySelector('.svc-brief');
+        if (briefInput && boldMatch) briefInput.value = boldMatch[1];
         const totalSpan = row.querySelector('.svc-total');
         if (totalSpan) totalSpan.textContent = curVal + ' ' + (price * qty).toFixed(2);
       });
@@ -1886,6 +1961,11 @@ function editHistory(id) {
       }
     }
   });
+  // Restore custom insurance description
+  if (savedValues.addon_insurance_desc) {
+    const descInput = document.querySelector('.addon-desc-input');
+    if (descInput) descInput.value = savedValues.addon_insurance_desc;
+  }
 
   // Open all steps so the user can see/edit everything
   document.querySelectorAll('.wiz-step').forEach(s => {
@@ -1911,26 +1991,37 @@ function _recordDocHistory() {
       h.name = name;
       h.detail = 'For: ' + client;
       h.snapshot = { type: currentType, values: { ...currentValues }, selectedService: selectedService };
-      h.downloadFn = () => { _doDownloadSilent(); };
+      h.downloadFn = () => { _downloadFromSnapshot(h.snapshot); };
       h.edited = true;
       _updateHistoryUI();
       return;
     }
   }
 
+  const snap = { type: currentType, values: { ...currentValues }, selectedService: selectedService };
   addToHistory({
     type: currentType,
     label: schema.label.replace(/[^\w\s]/g, '').trim(),
     name: name,
     detail: 'For: ' + client,
-    downloadFn: () => { _doDownloadPdf(); },
-    snapshot: { type: currentType, values: { ...currentValues }, selectedService: selectedService },
+    downloadFn: () => { _downloadFromSnapshot(snap); },
+    snapshot: snap,
   });
 }
 
-function _doDownloadSilent() {
-  if (!currentType) return;
-  collectFieldValues();
+function _downloadFromSnapshot(snapshot) {
+  if (!snapshot || !snapshot.type) return;
+  const prevType = currentType;
+  const prevValues = { ...currentValues };
+  const prevService = selectedService;
+  const prevCurrency = _activeCurrency;
+
+  // Temporarily restore snapshot state for rendering
+  currentType = snapshot.type;
+  currentValues = { ...snapshot.values };
+  selectedService = snapshot.selectedService || 'testing';
+  _activeCurrency = snapshot.values.currency || 'CHF';
+
   const html = renderTemplate(currentType, currentValues);
   const fullHTML = wrapForExport(html);
   const name = buildFileName();
@@ -1940,6 +2031,13 @@ function _doDownloadSilent() {
   a.download = name + '.html';
   a.click();
   URL.revokeObjectURL(a.href);
+  showToast('Downloaded ' + name + '.html');
+
+  // Restore previous state
+  currentType = prevType;
+  currentValues = prevValues;
+  selectedService = prevService;
+  _activeCurrency = prevCurrency;
 }
 
 function _recordConvHistory() {

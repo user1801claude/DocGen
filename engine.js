@@ -29,33 +29,37 @@ const COMPANY = {
 const SERVICE_CATALOG = {
   testing: [
     { id: 'cpsr_base', name: 'Cosmetic Safety Assessment Report (Base Formula)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true,
-      desc: 'Product code: CPSR-EC\nThe evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market' },
+      desc: 'Product code: CPSR-EC. The evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market.\nDuration: 3 – 5 business days' },
     { id: 'cpsr_var',  name: 'Cosmetic Safety Assessment Report (Variant)', unit: 'per product', prices: { CHF: 200, USD: 224, EUR: 208 },
-      desc: 'Product code: CPSR-EC\nThe evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market' },
+      desc: 'Product code: CPSR-EC. The evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market.\nDuration: 3 – 5 business days' },
     { id: 'stability', name: 'Cosmetic Stability Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true,
-      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+      desc: 'According to the Regulation (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]\nDuration: 12 weeks' },
     { id: 'micro',     name: 'Cosmetic Microbiological Testing', unit: 'per product', prices: { CHF: 175, USD: 196, EUR: 182 }, popular: true,
-      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+      desc: 'According to the Regulation (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]\nDuration: 48 hours' },
     { id: 'pet',       name: 'Cosmetic Challenge Testing (PET)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 },
-      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+      desc: 'According to the Regulation (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]\nDuration: 28 days' },
+    { id: 'insurance', name: 'Testing Insurance', unit: 'per product', prices: { CHF: 50, USD: 56, EUR: 46 },
+      desc: 'Client can retest at no charge if the product fails first time' },
   ],
   regulatory: [
     { id: 'cpsr_base', name: 'Cosmetic Safety Assessment Report (Base Formula)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true,
-      desc: 'Product code: CPSR-EC\nThe evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market' },
+      desc: 'Product code: CPSR-EC. The evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market.\nDuration: 3 – 5 business days' },
     { id: 'cpsr_var',  name: 'Cosmetic Safety Assessment Report (Variant)', unit: 'per product', prices: { CHF: 200, USD: 224, EUR: 208 },
-      desc: 'Product code: CPSR-EC\nThe evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market' },
+      desc: 'Product code: CPSR-EC. The evaluation report on the safety of cosmetic products is required by Regulation (EC) No 1223/2009, which recommends that a product information file (PIF) be drawn up for each cosmetic product before it is placed on the European market.\nDuration: 3 – 5 business days' },
     { id: 'stability', name: 'Cosmetic Stability Testing', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 }, popular: true,
-      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+      desc: 'According to the Regulation (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]\nDuration: 12 weeks' },
     { id: 'micro',     name: 'Cosmetic Microbiological Testing', unit: 'per product', prices: { CHF: 175, USD: 196, EUR: 182 }, popular: true,
-      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+      desc: 'According to the Regulation (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]\nDuration: 48 hours' },
     { id: 'pet',       name: 'Cosmetic Challenge Testing (PET)', unit: 'per product', prices: { CHF: 250, USD: 280, EUR: 260 },
-      desc: 'According to the Regulations (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]' },
+      desc: 'According to the Regulation (EC) No 1223/2009 and Ordinance DFI on cosmetics [RS 817.023.31]\nDuration: 28 days' },
+    { id: 'insurance', name: 'Testing Insurance', unit: 'per product', prices: { CHF: 50, USD: 56, EUR: 46 },
+      desc: 'Client can retest at no charge if the product fails first time' },
   ],
   manufacturing: [
-    { id: 'mfg_custom', name: 'Contract Manufacturing', unit: 'per unit', prices: { CHF: 0, USD: 0, EUR: 0 }, custom: true },
+    { id: 'mfg_custom', name: 'Contract Manufacturing', unit: '', prices: { CHF: 0, USD: 0, EUR: 0 }, custom: true },
   ],
   formulation: [
-    { id: 'formula_custom', name: 'Formula Development', unit: 'per project', prices: { CHF: 0, USD: 0, EUR: 0 }, custom: true },
+    { id: 'formula_custom', name: 'Formula Development', unit: '', prices: { CHF: 0, USD: 0, EUR: 0 }, custom: true },
   ],
 };
 
@@ -394,7 +398,7 @@ function fmtMoney(v) {
 
 // Keep backward-compat alias
 function fmtCHF(v) { return fmtMoney(v); }
-function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function nl2br(s) { return String(s || '').replace(/\n/g, '<br>'); }
 
@@ -492,11 +496,9 @@ function parseServices(raw) {
         }
 
         if (nums.length >= 2) {
-          // Two trailing numbers: use smart heuristic — larger = price, smaller = qty
-          const a = _extractPrice(nums[0].val);
-          const b = _extractPrice(nums[1].val);
-          const price = Math.max(a, b);
-          const qty   = Math.min(a, b);
+          // Two trailing numbers: first = qty, second = price (natural order)
+          const qty = _extractNum(nums[0].val);
+          const price = _extractPrice(nums[1].val);
           const nameParts = parts.slice(0, nums[0].idx);
           const name = nameParts[0] || '';
           const detail = nameParts.slice(1).join(', ');
@@ -546,7 +548,8 @@ function parseServices(raw) {
 
 // Build a service object from raw strings
 function _svc(idx, name, detail, qtyRaw, priceRaw) {
-  const qty = _extractNum(String(qtyRaw)) || 1;
+  const parsedQty = _extractNum(String(qtyRaw));
+  const qty = (parsedQty !== null && parsedQty >= 0) ? parsedQty : 1;
   const unit = _extractPrice(String(priceRaw)) || 0;
   // Clean up name — remove trailing commas, dashes
   name = String(name || '').replace(/[,;:\-–—|]+$/, '').trim();
@@ -554,10 +557,10 @@ function _svc(idx, name, detail, qtyRaw, priceRaw) {
   return { num: String(idx + 1).padStart(2, '0'), name, detail, qty, unit, total: qty * unit };
 }
 
-// Extract integer from string like "3", " 60h", "1x"
+// Extract number from string like "3", "2.5", " 60h", "1x"
 function _extractNum(s) {
-  const m = String(s).match(/(\d+)/);
-  return m ? parseInt(m[1]) : null;
+  const m = String(s).match(/(\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : null;
 }
 
 // Check if a string is essentially just a number (with optional CHF prefix / thousand seps)
@@ -569,7 +572,14 @@ function _isPlainNumber(s) {
 
 // Extract price float from string like "250.00", "CHF 250", "€ 250", "$1,200.50"
 function _extractPrice(s) {
-  const cleaned = String(s).replace(/CHF|EUR|USD/gi, '').replace(/[€$£]/g, '').replace(/[' ,]/g, '').trim();
+  let cleaned = String(s).replace(/CHF|EUR|USD/gi, '').replace(/[€$£]/g, '').replace(/[' ]/g, '').trim();
+  // European decimal: single comma followed by 1-2 digits at end (e.g. "1,5" or "49,50")
+  // Thousand separator: comma followed by 3 digits (e.g. "1,000")
+  if (/^\d+,\d{1,2}$/.test(cleaned)) {
+    cleaned = cleaned.replace(',', '.'); // European decimal → dot
+  } else {
+    cleaned = cleaned.replace(/,/g, ''); // Strip thousand separators
+  }
   const n = parseFloat(cleaned);
   return isNaN(n) ? null : n;
 }
@@ -604,8 +614,9 @@ function calcTotals(services, vatRate, addonExtra) {
   const extra = addonExtra || 0;
   const taxable = subtotal + extra;
   const rate = parseFloat(vatRate) || 0;
-  const vatAmt = taxable * rate / 100;
-  return { subtotal, addonExtra: extra, vatAmt, total: taxable + vatAmt };
+  const vatAmt = Math.round(taxable * rate) / 100;
+  const total = Math.round((taxable + vatAmt) * 100) / 100;
+  return { subtotal, addonExtra: extra, vatAmt, total };
 }
 
 // ── YAML Frontmatter Parser (robust) ────────────────

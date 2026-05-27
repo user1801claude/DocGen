@@ -36,7 +36,7 @@
     }
     @page { size: A4; margin: 0; }
   </style></head><body><div class="page"><div class="page-inner">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
     <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:var(--dark); letter-spacing:-0.3px;">
       MySwissLab<sup style="font-size:10px; color:var(--teal); font-weight:700; vertical-align:super;">+</sup>
     </div>
@@ -46,48 +46,55 @@
       <span style="background:var(--teal); color:#fff; font-size:9px; font-weight:700; padding:4px 10px; border-radius:3px; letter-spacing:0.5px;">#PI-{{REF}}</span>
       <span style="font-size:9px; color:var(--text-muted);">1/2</span>
     </div>
-  </div><div style="background:var(--teal-light); border:1.5px solid var(--teal); border-radius:6px; padding:10px 18px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;">
-    <div style="font-family:var(--font-display); font-size:13px; font-weight:800; color:var(--teal-dark); letter-spacing:1px; text-transform:uppercase;">PRO FORMA INVOICE</div>
-    <div style="font-size:9px; font-weight:700; color:var(--teal-dark); letter-spacing:1px; text-transform:uppercase;">NOT A TAX INVOICE — PRE-PAYMENT &amp; CUSTOMS ONLY</div>
-  </div><div style="display:flex; gap:32px; margin-bottom:24px;"><div><div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:3px;">DATE ISSUED</div><div style="font-size:12px; font-weight:700; color:var(--dark);">{{DATE_ISSUED}}</div></div><div><div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:3px;">VALID UNTIL</div><div style="font-size:12px; font-weight:700; color:var(--dark);">{{DATE_VALID}}</div><div style="font-size:8.5px; color:var(--text-muted); font-style:italic; margin-top:1px;">14 days — pricing guaranteed</div></div><div><div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:3px;">REFERENCE</div><div style="font-size:12px; font-weight:700; color:var(--dark);">PI-{{REF}}</div></div><div><div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:3px;">QUOTE REF</div><div style="font-size:12px; font-weight:700; color:var(--dark);">{{REF}}</div></div></div>
-  <div style="display:flex; align-items:center; justify-content:center; gap:20px; padding:12px 0; margin-bottom:20px;">
-    <div style="display:flex; align-items:center; gap:14px;">
-      <svg style="opacity:0.4; height:32px;" viewBox="0 0 80 40" fill="none"><ellipse cx="40" cy="20" rx="38" ry="18" stroke="#999" stroke-width="1.5" fill="none"/><text x="40" y="17" text-anchor="middle" font-size="8" font-weight="700" fill="#888" font-family="Inter,sans-serif">INTERNATIONAL</text><text x="40" y="28" text-anchor="middle" font-size="11" font-weight="800" fill="#666" font-family="Inter,sans-serif">IAF</text></svg>
-      <svg style="opacity:0.4; height:32px;" viewBox="0 0 60 40" fill="none"><text x="30" y="18" text-anchor="middle" font-size="7" font-weight="600" fill="#aaa" font-family="Inter,sans-serif">ACCREDITED</text><text x="30" y="30" text-anchor="middle" font-size="14" font-weight="800" fill="#777" font-family="Inter,sans-serif">IAS</text><text x="30" y="38" text-anchor="middle" font-size="5" fill="#bbb" font-family="Inter,sans-serif">Management Systems</text></svg>
-      <svg style="opacity:0.4; height:32px;" viewBox="0 0 60 40" fill="none"><circle cx="30" cy="20" r="15" stroke="#999" stroke-width="1" fill="none"/><ellipse cx="30" cy="20" rx="7" ry="15" stroke="#999" stroke-width="0.8" fill="none"/><line x1="15" y1="14" x2="45" y2="14" stroke="#999" stroke-width="0.6"/><line x1="15" y1="26" x2="45" y2="26" stroke="#999" stroke-width="0.6"/><text x="30" y="24" text-anchor="middle" font-size="10" font-weight="800" fill="#666" font-family="Inter,sans-serif">ISO</text></svg>
-    </div>
-    <div style="font-size:10px; font-weight:600; color:var(--text-muted); letter-spacing:0.2px;">ISO 22716 certified · Swiss headquarters · State-inspected</div>
   </div>
-  <div style="margin-bottom:28px;">
-    <div style="font-size:9px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border);">CUSTOMER</div>
-    <div style="display:flex; gap:20px;">
-      <div style="min-width:150px;">
-        <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">COMPANY</div>
-        <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px;">{{CLIENT_COMPANY}}</div>
-        <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">CONTACT PERSON</div>
-        <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px;">{{CLIENT_NAME}}</div>
-        <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">EMAIL</div>
-        <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px;">{{CLIENT_EMAIL}}</div>
-      </div>
-      <div style="min-width:180px;">
-        <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">ADDRESS</div>
-        <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px;">{{CLIENT_ADDRESS}}</div>
-        <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">VAT NUMBER</div>
-        <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px;">{{CLIENT_VAT}}</div>
-        <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">EORI NUMBER</div>
-        <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px;"> </div>
-      </div>
-      <div style="min-width:140px;">
-        <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">COUNTRY</div>
-        <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px;">France</div>
-        <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">PHONE</div>
-        <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px;">{{CLIENT_PHONE}}</div>
-        
-      </div>
-      
+
+  <div style="background:var(--teal-light); border:1.5px solid var(--teal); border-radius:6px; padding:10px 18px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;">
+    <div style="font-family:var(--font-display); font-size:13px; font-weight:800; color:var(--teal-dark); letter-spacing:1px; text-transform:uppercase;">Proforma Invoice</div>
+    <div style="font-size:8.5px; color:var(--teal-dark); font-weight:600;">{{SUBTITLE}}</div>
+  </div>
+
+  <div style="display:flex; gap:40px; margin-bottom:14px;">
+    <div><div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:3px;">INVOICE DATE</div><div style="font-size:11px; font-weight:700; color:var(--dark);">{{DATE_ISSUED}}</div></div>
+    <div><div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:3px;">PROFORMA REF</div><div style="font-size:11px; font-weight:700; color:var(--dark);">PI-{{REF}}</div></div>
+    <div><div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:3px;">QUOTE REF</div><div style="font-size:11px; font-weight:700; color:var(--dark);">{{REF}}</div></div>
+    <div><div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:3px;">PAYMENT DUE</div><div style="font-size:11px; font-weight:700; color:var(--dark);">{{PAYMENT_DUE}}</div></div>
+  </div>
+
+  <div style="display:flex; align-items:center; padding:8px 0; margin-bottom:14px; border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+    <div style="font-size:9px; color:var(--text-muted);">ISO 22716 certified · GMP compliant · Swiss headquarters</div>
+  </div>
+
+  <div style="font-size:9px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; text-decoration:underline; text-underline-offset:6px; text-decoration-color:var(--teal);">BILL TO</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0 32px; margin-bottom:16px;">
+    <div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">COMPANY</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;">{{CLIENT_COMPANY}}</div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">CONTACT PERSON</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;">{{CLIENT_NAME}}</div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">EMAIL</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;">{{CLIENT_EMAIL}}</div>
     </div>
-  </div><div style="font-size:9px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:2px; margin-bottom:14px; text-decoration:underline; text-underline-offset:6px; text-decoration-color:var(--teal);"><div style="font-size:10px; color:var(--text-light); line-height:1.5; margin-bottom:16px; font-style:italic;">{{DESCRIPTION}}</div>
-    SERVICES</div>
+    <div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">ADDRESS</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;">{{CLIENT_ADDRESS}}</div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">COUNTRY</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;">{{CLIENT_COUNTRY}}</div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">PHONE</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;">{{CLIENT_PHONE}}</div>
+    </div>
+    <div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">VAT NUMBER</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;">{{CLIENT_VAT}}</div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">EORI NUMBER</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;"> </div>
+      <div style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:2px;">PURCHASE ORDER #</div>
+      <div style="font-size:11px; font-weight:600; color:var(--dark); margin-bottom:8px; line-height:1.4;"> </div>
+    </div>
+  </div>
+
+  <hr style="border:none; border-top:1px solid var(--border); margin-bottom:14px;"/>
+
+  <div style="font-size:9px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:2px; margin-bottom:14px; text-decoration:underline; text-underline-offset:6px; text-decoration-color:var(--teal);">SERVICES</div>
     <table style="width:100%; border-collapse:collapse; margin-bottom:4px;">
       <thead><tr>
         <th style="font-size:7.5px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; padding:0 0 8px 0; border-bottom:1px solid var(--border); text-align:left; width:28px;">#</th>
@@ -106,7 +113,7 @@
     </div>
     <div style="font-family:var(--font-display); font-size:11px; font-weight:600; color:rgba(255,255,255,0.5);">1/2</div>
   </div></div><div class="page"><div class="page-inner">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;">
     <div style="font-family:var(--font-display); font-size:22px; font-weight:700; color:var(--dark); letter-spacing:-0.3px;">
       MySwissLab<sup style="font-size:10px; color:var(--teal); font-weight:700; vertical-align:super;">+</sup>
     </div>
@@ -117,77 +124,55 @@
       <span style="font-size:9px; color:var(--text-muted);">2/2</span>
     </div>
   </div>
-  <div style="display:flex; justify-content:flex-end; margin:10px 0;">
-    <div style="width:260px;">
+
+  <div style="display:flex; justify-content:flex-end; margin-bottom:28px;">
+    <div style="width:280px;">
       <div style="display:flex; justify-content:space-between; padding:5px 0; font-size:10px; border-bottom:1px solid #f0f0f0;">
         <span style="color:var(--text-light);">Subtotal</span><span style="font-weight:600; color:var(--dark);">{{SUBTOTAL_CHF}}</span>
       </div>
-      {{DEPOSIT_ROW}}
       <div style="display:flex; justify-content:space-between; padding:5px 0; font-size:10px; border-bottom:1px solid #f0f0f0;">
         <span style="color:var(--text-light);">Optional add-ons</span><span style="color:var(--text-muted); font-style:italic;">on request</span>
       </div>
       <div style="display:flex; justify-content:space-between; padding:5px 0; font-size:10px; border-bottom:1px solid #f0f0f0;">
         <span style="color:var(--text-light);">{{VAT_LABEL}}</span><span style="font-weight:600; color:var(--dark);">{{VAT_CHF}}</span>
       </div>
-      <div style="display:flex; justify-content:space-between; padding-top:8px; margin-top:2px; border-top:2px solid var(--dark);">
+      <div style="display:flex; justify-content:space-between; padding-top:8px; border-top:2px solid var(--dark); margin-top:2px;">
         <span style="font-family:var(--font-display); font-size:16px; font-weight:900; color:var(--dark);">Total</span>
         <span style="font-family:var(--font-display); font-size:16px; font-weight:900; color:var(--dark);">{{TOTAL_CHF}}</span>
       </div>
-      
-    </div>
-  </div><div style="font-size:9px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border);">PAYMENT DETAILS</div>
-  <div style="border:1.5px solid var(--border); border-radius:8px; padding:20px 24px; margin:16px 0 20px;">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-      <div>
-        <div style="font-family:var(--font-display); font-size:11px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Amount Due</div>
-        <div style="font-family:var(--font-display); font-size:28px; font-weight:900; color:var(--dark); letter-spacing:-0.5px;">{{TOTAL_CHF}}</div>
-      </div>
-      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-        <div style="display:inline-block; font-size:8px; font-weight:700; padding:4px 14px; border-radius:20px; background:#fff3e0; color:#e65100; border:1px solid #ffcc80; text-transform:uppercase; letter-spacing:1px;">UNPAID</div>
-        <div style="font-size:8.5px; color:var(--text-muted);">Due: Pre-payment required</div>
-      </div>
-    </div>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; padding-top:14px; border-top:1px solid var(--border);">
-      <div>
-        <div style="font-size:7px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1px; margin-bottom:3px;">BANK</div>
-        <div style="font-size:10px; font-weight:600; color:var(--dark);">Raiffeisen</div>
-      </div>
-      <div>
-        <div style="font-size:7px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1px; margin-bottom:3px;">BIC / SWIFT</div>
-        <div style="font-size:10px; font-weight:600; color:var(--dark);">{{BANK_BIC}}</div>
-      </div>
-      <div>
-        <div style="font-size:7px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1px; margin-bottom:3px;">IBAN</div>
-        <div style="font-size:10px; font-weight:700; color:var(--dark);">{{BANK_IBAN}}</div>
-      </div>
-      <div>
-        <div style="font-size:7px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1px; margin-bottom:3px;">PAYMENT REF</div>
-        <div style="font-size:10px; font-weight:700; color:var(--dark);">PI-{{REF}}</div>
-      </div>
-    </div>
-  </div><div style="margin:14px 0 16px; padding:12px 16px; background:var(--teal-light); border:1px solid var(--teal); border-radius:4px;">
-    <div style="font-size:8.5px; color:var(--teal-dark); line-height:1.7;">
-      <strong>Pro Forma Disclaimer:</strong> This pro forma invoice is issued for pre-payment and customs clearance purposes only. It is not a fiscal/tax invoice and does not constitute a legal obligation to deliver goods or services until payment has been received and confirmed. A formal tax invoice will be issued upon receipt of payment. Prices are valid for the period stated above. For customs: services consist of laboratory testing and regulatory assessment — no physical goods are exported. HS Code for services: not applicable.
+      {{PAYMENT_SCHEDULE}}
     </div>
   </div>
-  <div style="background:#fff8e1; border:1.5px solid #ffcc80; border-radius:6px; padding:16px 20px; display:flex; align-items:flex-start; gap:14px; margin-bottom:28px;">
-    <div style="width:32px; height:32px; background:#e65100; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+
+  <div style="font-size:9px; font-weight:700; color:var(--dark); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; text-decoration:underline; text-underline-offset:6px; text-decoration-color:var(--teal);">PAYMENT INFORMATION</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+    <div style="padding:12px 16px; border:1px solid var(--border); border-radius:6px;">
+      <div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px;">BANK TRANSFER</div>
+      <div style="font-size:9.5px; color:var(--text); line-height:1.8;">
+        <strong style="color:var(--dark);">Bank:</strong> Raiffeisen Switzerland<br>
+        <strong style="color:var(--dark);">BIC:</strong> {{BANK_BIC}}<br>
+        <strong style="color:var(--dark);">IBAN:</strong> {{BANK_IBAN}}<br>
+        <strong style="color:var(--dark);">Reference:</strong> PI-{{REF}}
+      </div>
     </div>
-    <div>
-      <div style="font-family:var(--font-display); font-size:11px; font-weight:700; color:var(--dark); margin-bottom:3px;">Important Payment Instructions</div>
-      <div style="font-size:9px; color:#5d4037; line-height:1.6;"><strong>Please use the payment reference <span style="color:#e65100;">PI-{{REF}}</span></strong> in your transfer so we can match your payment quickly.<br>All bank charges (including intermediary bank fees) must be borne by the sender — please select <strong>OUR/SHA</strong> charging option so the full invoiced amount arrives to us without deduction.</div>
-    </div>
-  </div></div>
-  <div style="background:#1d1d1f; margin:0 calc(-1 * var(--pad-x)); padding:28px var(--pad-x); text-align:center; position:absolute; bottom:55px; left:0; right:0;">
-    <div style="font-family:var(--font-display); font-size:17px; font-weight:600; color:#f5f5f7; margin-bottom:4px; letter-spacing:-0.2px;">Payment due</div>
-    <div style="font-size:10px; color:#86868b; margin-bottom:14px; font-weight:400;">Transfer {{TOTAL_CHF}} using the bank details above, or pay securely online.</div>
-    <div style="display:flex; justify-content:center; gap:12px;">
-      <a href="mailto:hello@myswisslab.ch?subject=Payment%20{{REF}}&body=I%20would%20like%20to%20proceed%20with%20payment." style="background:#31AD8A; color:#fff; border:none; padding:9px 28px; border-radius:980px; font-size:9.5px; font-weight:500; letter-spacing:0.3px; text-transform:uppercase; text-decoration:none; font-family:inherit;">PAY NOW →</a>
-      <a href="mailto:hello@myswisslab.ch?subject=Invoice%20Query" style="background:transparent; color:#f5f5f7; border:1px solid rgba(255,255,255,0.25); padding:9px 28px; border-radius:980px; font-size:9.5px; font-weight:500; letter-spacing:0.3px; text-transform:uppercase; text-decoration:none; font-family:inherit;">CONTACT US</a>
+    <div style="padding:12px 16px; border:1px solid var(--border); border-radius:6px;">
+      <div style="font-size:7.5px; font-weight:700; color:var(--teal); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px;">BENEFICIARY</div>
+      <div style="font-size:9.5px; color:var(--text); line-height:1.8;">
+        <strong style="color:var(--dark);">Name:</strong> SBR Group Sàrl<br>
+        <strong style="color:var(--dark);">Address:</strong> 1B Route de l'industrie<br>
+        1072 Forel (Lavaux), Switzerland<br>
+        <strong style="color:var(--dark);">VAT ID:</strong> CHE-454.205.462
+      </div>
     </div>
   </div>
+
   {{NOTES}}
+
+  <div style="background:#fff3e0; border:1.5px solid #ffcc80; border-radius:6px; padding:10px 16px; display:flex; align-items:flex-start; gap:10px;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div style="font-size:9px; color:#e65100; line-height:1.6;">This proforma invoice is issued for advance payment and customs purposes only and does not constitute a final VAT invoice. A commercial invoice will be issued upon completion. All prices are in {{CURRENCY_CODE}}.</div>
+  </div>
+</div>
   <div style="position:absolute; bottom:0; left:0; right:0; padding:14px var(--pad-x);
     display:flex; justify-content:space-between; align-items:flex-end;
     font-size:8px; color:rgba(255,255,255,0.7); line-height:1.6; border-top:1.5px solid rgba(255,255,255,0.15); background:#1d1d1f;">
